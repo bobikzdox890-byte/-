@@ -14,8 +14,15 @@ const toast = msg => {
 
 let state = null;
 
+const API = "https://83s8tvz3me.onrender.com";
+
 async function api(url, options={}) {
-  const r = await fetch(url, {
+  const r = await fetch(API + url, {
+    headers: {"Content-Type":"application/json"},
+    ...options
+  });
+  return await r.json();
+}
     headers: {"Content-Type":"application/json"},
     ...options
   });
