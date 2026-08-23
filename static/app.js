@@ -21,6 +21,7 @@ const user = tg?.initDataUnsafe?.user || {
   first_name: "Player"
 };
 
+
 const uid = String(user.id);
 const username =
   user.username ||
@@ -31,10 +32,6 @@ const username =
 const $ = id =>
   document.getElementById(id);
 
-
-/* =========================
-   TOAST
-========================= */
 
 const toast = msg => {
 
@@ -55,254 +52,41 @@ const toast = msg => {
 let state = null;
 
 let cooldownTimer = null;
-let energyTimer = null;
 
-let cooldownUntil = 0;
+let cooldownEnd = 0;
 
-let energyLastUpdate = 0;
+let requestNumber = 0;
 
-let tapBusy = false;
+let tapInProgress = false;
 
 
-/* =========================
-   COOLDOWN UI
-========================= */
-
-function createCooldownUI() {
-
-  if ($("cooldown-indicator")) {
-    return;
-  }
-
-  const indicator =
-    document.createElement("div");
-
-  indicator.id =
-    "cooldown-indicator";
-
-  indicator.innerHTML = `
-    <div id="cooldown-label">
-      ГОТОВО
-    </div>
-
-    <div id="cooldown-time">
-      0.0
-    </div>
-  `;
-
-  $("tap-area").appendChild(indicator);
-}
-
-
-function updateCooldownUI(remaining) {
-
-  const indicator =
-    $("cooldown-indicator");
-
-  const label =
-    $("cooldown-label");
-
-  const time =
-    $("cooldown-time");
-
-  if (!indicator || !label || !time) {
-    return;
-  }
-
-
-  if (remaining <= 0) {
-
-    indicator.classList.remove(
-      "cooldown-active"
-    );
-
-    indicator.classList.add(
-      "cooldown-ready"
-    );
-
-    label.textContent =
-      "ГОТОВО";
-
-    time.textContent =
-      "TAP";
-
-    return;
-  }
-
-
-  indicator.classList.remove(
-    "cooldown-ready"
-  );
-
-  indicator.classList.add(
-    "cooldown-active"
-  );
-
-  label.textContent =
-    "КУЛДАУН";
-
-  time.textContent =
-    remaining.toFixed(1) + "с";
-}
-
-
-function startCooldown(seconds) {
-
-  clearInterval(cooldownTimer);
-
-  const duration =
-    Math.max(
-      0,
-      Number(seconds) || 0
-    );
-
-  cooldownUntil =
-    performance.now() +
-    duration * 1000;
-
-  updateCooldownUI(duration);
-
-
-  cooldownTimer =
-    setInterval(() => {
-
-      const remaining =
-        Math.max(
-          0,
-          (cooldownUntil -
-            performance.now()) / 1000
-        );
-
-      updateCooldownUI(
-        remaining
-      );
-
-
-      if (remaining <= 0) {
-
-        clearInterval(
-          cooldownTimer
-        );
-
-        cooldownTimer =
-          null;
-
-        cooldownUntil = 0;
-
-        tapBusy = false;
-      }
-
-    }, 50);
-}
-
-
-/* =========================
-   ENERGY UI
-========================= */
-
-function startEnergyTimer() {
-
-  clearInterval(
-    energyTimer
-  );
-
-
-  energyLastUpdate =
-    performance.now();
-
-
-  energyTimer =
-    setInterval(() => {
-
-      if (!state) {
-        return;
-      }
-
-
-      const now =
-        performance.now();
-
-
-      const elapsed =
-        (now -
-          energyLastUpdate) / 1000;
-
-
-      if (
-        elapsed <= 0 ||
-        state.energy >=
-        state.max_energy
-      ) {
-
-        energyLastUpdate =
-          now;
-
-        return;
-      }
-
-
-      const regen =
-        Number(
-          state.regen_cd
-        ) || 2;
-
-
-      const gained =
-        elapsed / regen;
-
-
-      state.energy =
-        Math.min(
-          Number(
-            state.max_energy
-          ),
-          Number(
-            state.energy
-          ) + gained
-        );
-
-
-      energyLastUpdate =
-        now;
-
-
-      $("energy").textContent =
-        Math.floor(
-          state.energy
-        );
-
-    }, 100);
-
-}
+const API =
+  "https://83s8tvz3me.onrender.com";
 
 
 /* =========================
    API
 ========================= */
 
-async function api(
-  url,
-  options = {}
-) {
+async function api(url, options = {}) {
 
   try {
 
-    const r =
-      await fetch(
-        API + url,
-        {
-          method:
-            options.method || "GET",
+    const r = await fetch(
+      API + url,
+      {
+        method:
+          options.method || "GET",
 
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-          body:
-            options.body
-        }
-      );
+        body:
+          options.body
+      }
+    );
 
 
     const text =
@@ -310,7 +94,6 @@ async function api(
 
 
     let data;
-
 
     try {
 
@@ -326,7 +109,7 @@ async function api(
 
       return {
         ok: false,
-        error: "invalid_response"
+        error: "api_error"
       };
     }
 
@@ -375,38 +158,146 @@ function render(p) {
 
 
   $("dollars").textContent =
-    Number(
-      p.dollars
-    ).toFixed(2);
+    Number(p.dollars).toFixed(2);
 
 
   $("energy").textContent =
-    Math.floor(
-      p.energy
-    );
+    Math.floor(p.energy);
 
 
   $("max-energy").textContent =
-    Math.floor(
-      p.max_energy
-    );
-
-
-  energyLastUpdate =
-    performance.now();
+    Math.floor(p.max_energy);
 }
 
 
 /* =========================
-   INITIAL LOAD
+   COOLDOWN
+========================= */
+
+function startCooldown(seconds) {
+
+  clearInterval(
+    cooldownTimer
+  );
+
+
+  const button =
+    $("tap-button");
+
+
+  const safeSeconds =
+    Math.max(
+      0,
+      Number(seconds) || 0
+    );
+
+
+  cooldownEnd =
+    Date.now()
+    + safeSeconds * 1000;
+
+
+  button.classList.add(
+    "cooldown"
+  );
+
+
+  function update() {
+
+    const remaining =
+      Math.max(
+        0,
+        cooldownEnd - Date.now()
+      ) / 1000;
+
+
+    if (remaining <= 0) {
+
+      clearInterval(
+        cooldownTimer
+      );
+
+      cooldownTimer = null;
+
+      button.classList.remove(
+        "cooldown"
+      );
+
+      button.textContent =
+        "TAP";
+
+      button.classList.remove(
+        "ready"
+      );
+
+      return;
+    }
+
+
+    button.textContent =
+      `⏳ ${remaining.toFixed(1)}`;
+  }
+
+
+  update();
+
+
+  cooldownTimer =
+    setInterval(
+      update,
+      50
+    );
+}
+
+
+function stopCooldown() {
+
+  clearInterval(
+    cooldownTimer
+  );
+
+  cooldownTimer = null;
+
+  cooldownEnd = 0;
+
+  const button =
+    $("tap-button");
+
+
+  button.classList.remove(
+    "cooldown"
+  );
+
+  button.textContent =
+    "TAP";
+}
+
+
+/* =========================
+   LOAD
 ========================= */
 
 async function load() {
 
-  const d =
-    await api(
-      `/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`
-    );
+  /*
+   Не даём старому load
+   перезаписать более новый запрос.
+  */
+
+  const currentRequest =
+    ++requestNumber;
+
+
+  const d = await api(
+    `/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`
+  );
+
+
+  if (
+    currentRequest !== requestNumber
+  ) {
+    return;
+  }
 
 
   console.log(
@@ -415,74 +306,54 @@ async function load() {
   );
 
 
-  if (!d.ok) {
+  if (d.ok) {
 
-    toast(
-      "❌ API не отвечает"
+    render(d.player);
+
+  } else {
+
+    console.error(
+      "STATE ERROR:",
+      d
     );
-
-    return;
   }
-
-
-  render(
-    d.player
-  );
-
-
-  startEnergyTimer();
-
-
-  /*
-     Сервер отдаёт актуальный
-     tap_cd, поэтому после
-     открытия приложения
-     просто показываем READY.
-  */
-
-  updateCooldownUI(0);
 }
 
 
+load();
+
+
+/*
+   Больше НЕ делаем load каждую секунду.
+   Именно этот постоянный опрос мог
+   создавать лишние задержки/конкуренцию
+   с тапами.
+*/
+
+
 /* =========================
-   API URL
-========================= */
-
-const API =
-  "https://83s8tvz3me.onrender.com";
-
-
-/* =========================
-   TAP BUTTON
+   TAP
 ========================= */
 
 const tapButton =
   $("tap-button");
 
 
-let pointerDown = false;
-
-
-/*
-   Палец нажал
-*/
-
 tapButton.addEventListener(
   "pointerdown",
-  e => {
+  async (e) => {
 
     e.preventDefault();
 
 
     if (
-      cooldownUntil > 0 ||
-      tapBusy
+      tapInProgress
     ) {
       return;
     }
 
 
-    pointerDown = true;
+    tapInProgress = true;
 
 
     tapButton.classList.add(
@@ -492,263 +363,183 @@ tapButton.addEventListener(
 
     try {
 
-      tapButton.setPointerCapture(
-        e.pointerId
+      const d = await api(
+        "/api/tap",
+        {
+          method: "POST",
+
+          body: JSON.stringify({
+            user_id: uid,
+            username: username
+          })
+        }
       );
 
-    } catch {}
-  }
-);
+
+      /* =====================
+         COOLDOWN
+      ===================== */
+
+      if (
+        !d.ok &&
+        d.error === "cooldown"
+      ) {
+
+        startCooldown(
+          d.remaining
+        );
+
+        toast(
+          `⏳ ${Number(d.remaining).toFixed(1)}с`
+        );
+
+        return;
+      }
 
 
-/*
-   Палец отпустил
-*/
+      /* =====================
+         ENERGY
+      ===================== */
 
-tapButton.addEventListener(
-  "pointerup",
-  async e => {
+      if (
+        !d.ok &&
+        d.error === "energy"
+      ) {
 
-    e.preventDefault();
+        toast(
+          "⚡ Нет энергии"
+        );
+
+        return;
+      }
 
 
-    tapButton.classList.remove(
-      "pressed"
-    );
+      /* =====================
+         OTHER ERROR
+      ===================== */
+
+      if (!d.ok) {
+
+        toast(
+          "❌ Ошибка тапа"
+        );
+
+        return;
+      }
 
 
-    if (!pointerDown) {
-      return;
+      /* =====================
+         SUCCESS
+      ===================== */
+
+      render(
+        d.player
+      );
+
+
+      /*
+       После успешного тапа
+       запускаем настоящий cooldown
+       сразу, не дожидаясь load().
+      */
+
+      startCooldown(
+        d.player.tap_cd
+      );
+
+
+      const f =
+        document.createElement(
+          "div"
+        );
+
+
+      f.className =
+        "float";
+
+
+      f.textContent =
+        `+${Number(
+          d.reward
+        ).toFixed(2)}`;
+
+
+      f.style.left =
+        `${e.clientX - 20}px`;
+
+
+      f.style.top =
+        `${e.clientY - 20}px`;
+
+
+      $("float-layer")
+        .appendChild(f);
+
+
+      setTimeout(() => {
+
+        f.remove();
+
+      }, 750);
+
+
+      if (d.gem_drop) {
+
+        toast(
+          "💎 +1 G3MS"
+        );
+
+      } else if (d.x5) {
+
+        toast(
+          "🔥 X5!"
+        );
+
+      } else if (d.doubled) {
+
+        toast(
+          "⚡ DOUBLE!"
+        );
+      }
+
+
+    } finally {
+
+      tapInProgress =
+        false;
     }
-
-
-    pointerDown = false;
-
-
-    if (
-      cooldownUntil > 0 ||
-      tapBusy
-    ) {
-      return;
-    }
-
-
-    await doTap(e);
-  }
-);
-
-
-/*
-   Палец ушёл с экрана
-*/
-
-tapButton.addEventListener(
-  "pointercancel",
-  e => {
-
-    pointerDown = false;
-
-    tapButton.classList.remove(
-      "pressed"
-    );
-  }
-);
-
-
-/*
-   Если палец ушёл с кнопки
-*/
-
-tapButton.addEventListener(
-  "lostpointercapture",
-  () => {
-
-    pointerDown = false;
-
-    tapButton.classList.remove(
-      "pressed"
-    );
   }
 );
 
 
 /* =========================
-   TAP REQUEST
+   POINTER UP
 ========================= */
 
-async function doTap(e) {
+function releaseButton() {
 
-  if (
-    tapBusy ||
-    cooldownUntil > 0
-  ) {
-    return;
-  }
-
-
-  tapBusy = true;
-
-
-  const d =
-    await api(
-      "/api/tap",
-      {
-        method: "POST",
-
-        body:
-          JSON.stringify({
-            user_id: uid,
-            username: username
-          })
-      }
-    );
-
-
-  /*
-     Сервер сказал:
-     ещё кулдаун.
-  */
-
-  if (
-    !d.ok
-  ) {
-
-    tapBusy = false;
-
-
-    if (
-      d.error === "cooldown"
-    ) {
-
-      startCooldown(
-        d.remaining
-      );
-
-      return;
-    }
-
-
-    if (
-      d.error === "energy"
-    ) {
-
-      toast(
-        "⚡ Нет энергии"
-      );
-
-      return;
-    }
-
-
-    toast(
-      "❌ Ошибка отправки"
-    );
-
-    return;
-  }
-
-
-  /*
-     Сервер подтвердил тап.
-  */
-
-  render(
-    d.player
+  tapButton.classList.remove(
+    "pressed"
   );
-
-
-  /*
-     Сразу запускаем
-     следующий кулдаун.
-  */
-
-  startCooldown(
-    Number(
-      d.player.tap_cd
-    )
-  );
-
-
-  /*
-     Анимация денег.
-  */
-
-  const f =
-    document.createElement(
-      "div"
-    );
-
-  f.className =
-    "float";
-
-
-  f.textContent =
-    `+${Number(
-      d.reward
-    ).toFixed(2)}`;
-
-
-  const rect =
-    tapButton.getBoundingClientRect();
-
-
-  f.style.left =
-    `${
-      rect.left +
-      rect.width / 2 -
-      20
-    }px`;
-
-
-  f.style.top =
-    `${
-      rect.top +
-      rect.height / 2 -
-      20
-    }px`;
-
-
-  $("float-layer")
-    .appendChild(f);
-
-
-  setTimeout(() => {
-    f.remove();
-  }, 750);
-
-
-  /*
-     Бонусы.
-  */
-
-  if (
-    d.gem_drop
-  ) {
-
-    toast(
-      "💎 +1 G3MS"
-    );
-
-  } else if (
-    d.x5
-  ) {
-
-    toast(
-      "🔥 X5!"
-    );
-
-  } else if (
-    d.doubled
-  ) {
-
-    toast(
-      "⚡ DOUBLE!"
-    );
-  }
-
-
-  tapBusy = false;
 }
+
+
+tapButton.addEventListener(
+  "pointerup",
+  releaseButton
+);
+
+
+tapButton.addEventListener(
+  "pointercancel",
+  releaseButton
+);
+
+
+tapButton.addEventListener(
+  "pointerleave",
+  releaseButton
+);
 
 
 /* =========================
@@ -759,13 +550,12 @@ const panel =
   $("panel");
 
 
-$("close-panel").onclick =
-  () => {
+$("close-panel").onclick = () => {
 
-    panel.classList.remove(
-      "open"
-    );
-  };
+  panel.classList.remove(
+    "open"
+  );
+};
 
 
 document
@@ -791,34 +581,19 @@ function openPanel(type) {
   );
 
 
-  if (
-    type === "upgrades"
-  ) {
-
+  if (type === "upgrades") {
     upgradesPanel();
   }
 
-
-  if (
-    type === "gems"
-  ) {
-
+  if (type === "gems") {
     gemsPanel();
   }
 
-
-  if (
-    type === "rating"
-  ) {
-
+  if (type === "rating") {
     ratingPanel();
   }
 
-
-  if (
-    type === "profile"
-  ) {
-
+  if (type === "profile") {
     profilePanel();
   }
 }
@@ -830,10 +605,9 @@ function openPanel(type) {
 
 async function upgradesPanel() {
 
-  const d =
-    await api(
-      `/api/upgrades?user_id=${encodeURIComponent(uid)}`
-    );
+  const d = await api(
+    `/api/upgrades?user_id=${encodeURIComponent(uid)}`
+  );
 
 
   if (!d.ok) {
@@ -964,6 +738,7 @@ async function upgradesPanel() {
                 </button>
 
               </div>
+
             `
         }
 
@@ -1035,26 +810,22 @@ function gemsPanel() {
 
 async function buy(kind) {
 
-  const d =
-    await api(
-      "/api/upgrade",
-      {
-        method: "POST",
+  const d = await api(
+    "/api/upgrade",
+    {
+      method: "POST",
 
-        body:
-          JSON.stringify({
-            user_id: uid,
-            kind: kind
-          })
-      }
-    );
+      body: JSON.stringify({
+        user_id: uid,
+        kind: kind
+      })
+    }
+  );
 
 
   if (!d.ok) {
 
-    if (
-      d.error === "money"
-    ) {
+    if (d.error === "money") {
 
       toast(
         `❌ Нужно ${d.cost} ${d.currency}`
@@ -1083,7 +854,6 @@ async function buy(kind) {
     d.player
   );
 
-
   toast(
     "✅ Уровень повышен"
   );
@@ -1110,26 +880,22 @@ async function buy(kind) {
 
 async function buyMax(kind) {
 
-  const d =
-    await api(
-      "/api/upgrade_max",
-      {
-        method: "POST",
+  const d = await api(
+    "/api/upgrade_max",
+    {
+      method: "POST",
 
-        body:
-          JSON.stringify({
-            user_id: uid,
-            kind: kind
-          })
-      }
-    );
+      body: JSON.stringify({
+        user_id: uid,
+        kind: kind
+      })
+    }
+  );
 
 
   if (!d.ok) {
 
-    if (
-      d.error === "money"
-    ) {
+    if (d.error === "money") {
 
       toast(
         `❌ Нужно ${d.cost} ${d.currency}`
@@ -1227,55 +993,46 @@ async function profilePanel() {
     );
 
 
-  $("panel-content").innerHTML = `
+  $("panel-content")
+    .innerHTML = `
 
-    <h2>👤 Профиль</h2>
+      <h2>👤 Профиль</h2>
 
-    <div class="card">
+      <div class="card">
 
-      <b>${username}</b>
+        <b>${username}</b>
 
-      <br>
+        <br>
 
-      ID:
-      ${uid}
+        ID:
+        ${uid}
 
-    </div>
+      </div>
 
-    <div class="card">
+      <div class="card">
 
-      🪙 8OLLAR:
-      ${state.dollars.toFixed(2)}
+        🪙 8OLLAR:
+        ${state.dollars.toFixed(2)}
 
-      <br>
+        <br>
 
-      💎 G3MS:
-      ${state.gems.toFixed(0)}
+        💎 G3MS:
+        ${state.gems.toFixed(0)}
 
-    </div>
+      </div>
 
-    <div class="card">
+      <div class="card">
 
-      👥 Рефералы:
-      ${d.referrals}
+        👥 Рефералы:
+        ${d.referrals}
 
-    </div>
+      </div>
 
-    <div class="card">
+      <div class="card">
 
-      🔗 Реферальный код:
-      <b>${d.code}</b>
+        🔗 Реферальный код:
+        <b>${d.code}</b>
 
-    </div>
-
-  `;
-}
-
-
-/* =========================
-   START
-========================= */
-
-createCooldownUI();
-
-load();
+      </div>
+    `;
+    }
