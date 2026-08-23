@@ -37,9 +37,44 @@ const toast = msg => {
   }, 1400);
 };
 
+function startCooldown(seconds) {
+
+  clearInterval(cooldownTimer);
+
+  let remaining = Number(seconds);
+
+  const button = $("tap-button");
+
+  button.classList.add("cooldown");
+
+  const update = () => {
+
+    if (remaining <= 0) {
+
+      clearInterval(cooldownTimer);
+
+      button.classList.remove("cooldown");
+
+      button.textContent = "TAP";
+
+      return;
+    }
+
+    button.textContent =
+      `⏳ ${remaining.toFixed(1)}`;
+
+    remaining -= 0.1;
+  };
+
+  update();
+
+  cooldownTimer =
+    setInterval(update, 100);
+}
+
 
 let state = null;
-
+let cooldownTimer = null;
 
 const API = "https://83s8tvz3me.onrender.com";
 
@@ -171,7 +206,7 @@ $("tap-area").addEventListener(
     if (!d.ok) {
 
       if (d.error === "cooldown") {
-        toast(`⏳ ${d.remaining}s`);
+  startCooldown(d.remaining);
       }
 
       if (d.error === "energy") {
