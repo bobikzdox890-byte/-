@@ -105,7 +105,10 @@ $("tap-area").addEventListener("click", async (e) => {
 const panel = $("panel");
 $("close-panel").onclick = () => panel.classList.remove("open");
 document.querySelectorAll(".bottom button").forEach(btn => {
-  btn.onclick = () => openPanel(btn.dataset.panel);
+  btn.onclick = () => {
+    alert("КНОПКА РАБОТАЕТ: " + btn.dataset.panel);
+    openPanel(btn.dataset.panel);
+  };
 });
 
 function openPanel(type) {
