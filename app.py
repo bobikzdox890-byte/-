@@ -264,8 +264,55 @@ def upgrade():
     payload = request.get_json(silent=True) or {}
     user_id = str(payload.get("user_id", "local-demo"))
     kind = payload.get("kind")
+
     if kind not in UPGRADE_COSTS:
         return jsonify({"ok": False, "error": "unknown upgrade"}), 400
+
+    row = get_player(user_id)
+
+    level_col = LEVEL_COLUMNS[kind]
+    currency = upgrade_currency(kind)
+    max_level = upgrade_max_level(kind)
+
+    current_level = row[level_col]
+
+    if max_level is not None and current_level >= max_level:
+        return jsonify({
+            "ok": False,
+            "error": "max_level"
+        }), 400
+
+    cost = UPGRADE_COSTS[kind](row)
+
+    if row[currency] < cost:
+        return jsonify({
+            "ok": False,
+            "error": "money",
+            "cost": round(cost, 2),
+            "currency": currency
+        }), 400
+
+    conn = db()
+
+    conn.execute(
+        f"""
+        UPDATE players
+        SET {currency}={currency}-?,
+            {level_col}={level_col}+1
+        WHERE user_id=?
+        """,
+        (cost, user_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        "ok": True,
+        "cost": round(cost, 2),
+        "player": serialize(get_player(user_id))
+    })
+
 
 @app.post("/api/upgrade_max")
 def upgrade_max():
@@ -287,7 +334,6 @@ def upgrade_max():
 
     while True:
         row = get_player(user_id)
-
         current_level = row[level_col]
 
         if max_level is not None and current_level >= max_level:
@@ -338,42 +384,6 @@ def upgrade_max():
         "levels_bought": levels_bought,
         "player": serialize(get_player(user_id))
     })
-
-    row = get_player(user_id)
-    cost = UPGRADE_COSTS[kind](row)
-    currency = "gems" if kind in {"double", "multiplier"} else "dollars"
-    balance = row[currency]
-
-    # Hard caps from the design.
-    if kind == "tap_cd" and row["tap_cd_level"] >= 20:
-        return jsonify({"ok": False, "error": "max_level"}), 400
-    if kind == "double" and row["double_level"] >= 50:
-        return jsonify({"ok": False, "error": "max_level"}), 400
-    if kind == "regen" and row["regen_level"] >= 99:
-        return jsonify({"ok": False, "error": "max_level"}), 400
-
-    if balance < cost:
-        return jsonify({"ok": False, "error": "money", "cost": round(cost,2), "currency": currency}), 400
-
-    level_col = {
-        "tap_cd": "tap_cd_level",
-        "income": "income_level",
-        "energy": "energy_level",
-        "regen": "regen_level",
-        "double": "double_level",
-        "multiplier": "multiplier_level",
-        "gem_income": "gem_income_level",
-    }[kind]
-
-    conn = db()
-    conn.execute(
-        f"UPDATE players SET {currency}={currency}-?, {level_col}={level_col}+1 WHERE user_id=?",
-        (cost, user_id)
-    )
-    conn.commit()
-    conn.close()
-
-    return jsonify({"ok": True, "cost": round(cost,2), "player": serialize(get_player(user_id))})
 
 @app.get("/api/referrals")
 def referrals():
