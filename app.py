@@ -238,7 +238,7 @@ def tap_cooldown(row):
 def tap_reward(row):
 
     return BASE_TAP_REWARD * (
-        1.10 ** row["income_level"]
+        1.33 ** row["income_level"]
     )
 
 
