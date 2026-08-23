@@ -228,10 +228,14 @@ def regen_energy(row):
 
 def tap_cooldown(row):
 
-    return max(
-        0.05,
+    cd = (
         BASE_TAP_COOLDOWN
         - 0.05 * row["tap_cd_level"]
+    )
+
+    return max(
+        0.05,
+        cd
     )
 
 
