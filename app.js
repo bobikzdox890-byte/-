@@ -47,11 +47,7 @@ async function api(url, options = {}) {
     return { ok: false, error: "connection" };
   }
 }
-    headers: {"Content-Type":"application/json"},
-    ...options
-  });
-  return await r.json();
-}
+    
 
 function render(p) {
   state = p;
