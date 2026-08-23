@@ -16,7 +16,6 @@ CORS(app)
 # DATABASE
 # =========================
 
-
 class DBConnection:
 
     def __init__(self):
@@ -46,6 +45,7 @@ class DBConnection:
 
 def db():
     return DBConnection()
+
 
 # =========================
 # GAME CONSTANTS
@@ -223,7 +223,7 @@ def regen_energy(row):
 
 
 # =========================
-# UPGRADES / GAME LOGIC
+# GAME LOGIC
 # =========================
 
 def tap_cooldown(row):
@@ -278,6 +278,13 @@ def serialize(row):
 
     row, max_energy, regen_cd = regen_energy(row)
 
+    cd = tap_cooldown(row)
+
+    remaining = max(
+        0,
+        cd - (now() - row["last_tap_at"])
+    )
+
     return {
 
         "user_id":
@@ -318,7 +325,13 @@ def serialize(row):
 
         "tap_cd":
             round(
-                tap_cooldown(row),
+                cd,
+                2
+            ),
+
+        "cooldown_remaining":
+            round(
+                remaining,
                 2
             ),
 
@@ -392,6 +405,36 @@ def index():
 # STATE
 # =========================
 
+@app.get("/api/state")
+def state():
+
+    user_id = str(
+        request.args.get(
+            "user_id",
+            "local-demo"
+        )
+    )
+
+    username = request.args.get(
+        "username",
+        "Player"
+    )
+
+    row = get_player(
+        user_id,
+        username
+    )
+
+    return jsonify({
+        "ok": True,
+        "player": serialize(row)
+    })
+
+
+# =========================
+# TAP
+# =========================
+
 @app.post("/api/tap")
 def tap():
 
@@ -416,16 +459,16 @@ def tap():
         username
     )
 
-    # Обновляем энергию
     row, max_energy, _ = regen_energy(row)
 
-    # Получаем нормальный кулдаун
     cd = tap_cooldown(row)
 
     current_time = now()
 
-    # Защита от сломанного last_tap_at.
-    # Если он оказался в будущем — сбрасываем его.
+    # =========================
+    # PROTECT AGAINST BAD TIME
+    # =========================
+
     if row["last_tap_at"] > current_time:
 
         conn = db()
@@ -447,10 +490,12 @@ def tap():
 
         row = get_player(user_id)
 
-    # Сколько прошло после прошлого тапа
     elapsed = current_time - row["last_tap_at"]
 
-    # Кулдаун ещё не закончился
+    # =========================
+    # COOLDOWN
+    # =========================
+
     if elapsed < cd:
 
         remaining = max(
@@ -471,7 +516,10 @@ def tap():
             )
         }), 429
 
-    # Проверяем энергию
+    # =========================
+    # ENERGY
+    # =========================
+
     if row["energy"] < 1:
 
         return jsonify({
@@ -480,7 +528,7 @@ def tap():
         }), 400
 
     # =========================
-    # REWARD
+    # BASE REWARD
     # =========================
 
     reward = tap_reward(row)
@@ -523,7 +571,7 @@ def tap():
     )
 
     # =========================
-    # SAVE TAP
+    # SAVE
     # =========================
 
     tap_time = now()
@@ -551,7 +599,6 @@ def tap():
     conn.commit()
     conn.close()
 
-    # Получаем актуальное состояние
     row = get_player(
         user_id
     )
@@ -584,6 +631,7 @@ def tap():
         "player":
             serialize(row)
     })
+
 
 # =========================
 # UPGRADE COSTS
@@ -672,7 +720,7 @@ LEVEL_COLUMNS = {
 
 
 # =========================
-# UPGRADE CURRENCY
+# CURRENCY
 # =========================
 
 def upgrade_currency(kind):
@@ -821,13 +869,9 @@ def upgrade():
             "error": "max_level"
         }), 400
 
-    cost = UPGRADE_COSTS[kind](
-        row
-    )
+    cost = UPGRADE_COSTS[kind](row)
 
-    balance = row[
-        currency
-    ]
+    balance = row[currency]
 
     if balance < cost:
 
@@ -916,9 +960,7 @@ def upgrade_max():
         kind
     )
 
-    max_level = upgrade_max_level(
-        kind
-    )
+    max_level = upgrade_max_level(kind)
 
     levels_bought = 0
 
@@ -938,9 +980,7 @@ def upgrade_max():
         ):
             break
 
-        cost = UPGRADE_COSTS[kind](
-            row
-        )
+        cost = UPGRADE_COSTS[kind](row)
 
         if row[currency] < cost:
             break
@@ -986,9 +1026,7 @@ def upgrade_max():
                 "error": "max_level"
             }), 400
 
-        cost = UPGRADE_COSTS[kind](
-            row
-        )
+        cost = UPGRADE_COSTS[kind](row)
 
         return jsonify({
             "ok": False,
@@ -1060,9 +1098,7 @@ def referral():
         )
     )
 
-    get_player(
-        user_id
-    )
+    get_player(user_id)
 
     conn = db()
 
@@ -1074,9 +1110,7 @@ def referral():
             dollars=dollars+100
         WHERE user_id=%s
         """,
-        (
-            user_id,
-        )
+        (user_id,)
     )
 
     conn.commit()
