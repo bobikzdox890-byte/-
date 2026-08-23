@@ -503,7 +503,7 @@ async function buyMax(kind) {
   );
 
   console.log("BUY MAX RESPONSE:", d);
-
+}
   if (!d.ok) {
 
     if (d.error === "money") {
@@ -535,7 +535,7 @@ async function buyMax(kind) {
   );
 
   upgradesPanel();
-}
+
 
 
 async function profilePanel() {
