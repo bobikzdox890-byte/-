@@ -1,8 +1,20 @@
 window.onerror = function(message, source, lineno) {
   document.body.insertAdjacentHTML(
     "afterbegin",
-    `<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;padding:15px;font-size:14px">
-      JS ERROR:<br>${message}<br>Line: ${lineno}
+    `<div style="
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      z-index:99999;
+      background:red;
+      color:white;
+      padding:15px;
+      font-size:14px;
+    ">
+      JS ERROR:<br>
+      ${message}<br>
+      Line: ${lineno}
     </div>`
   );
 };
@@ -125,6 +137,13 @@ async function api(url, options = {}) {
     }
 
 
+    console.log(
+      "API:",
+      url,
+      data
+    );
+
+
     if (!response.ok) {
 
       console.error(
@@ -186,10 +205,7 @@ function render(player) {
 
 function startCooldown(seconds) {
 
-  clearInterval(
-    cooldownTimer
-  );
-
+  clearInterval(cooldownTimer);
 
   const button =
     $("tap-button");
@@ -197,6 +213,12 @@ function startCooldown(seconds) {
 
   const value =
     Number(seconds);
+
+
+  console.log(
+    "START COOLDOWN:",
+    value
+  );
 
 
   if (
@@ -231,6 +253,7 @@ function startCooldown(seconds) {
     if (remaining <= 0) {
 
       stopCooldown();
+
       return;
     }
 
@@ -277,7 +300,7 @@ function stopCooldown() {
 
 
 /* =========================
-   LOAD ONCE
+   INITIAL LOAD
 ========================= */
 
 async function load() {
@@ -321,22 +344,12 @@ const tapButton =
   $("tap-button");
 
 
-/*
-   Палец нажал кнопку.
-   Никаких click — реакция сразу.
-*/
-
 tapButton.addEventListener(
   "pointerdown",
   async (event) => {
 
     event.preventDefault();
 
-
-    /*
-       Если палец уже зажат —
-       второй запрос не отправляем.
-    */
 
     if (fingerDown) {
       return;
@@ -346,20 +359,10 @@ tapButton.addEventListener(
     fingerDown = true;
 
 
-    /*
-       Визуально зажимаем кнопку
-       МГНОВЕННО.
-    */
-
     tapButton.classList.add(
       "pressed"
     );
 
-
-    /*
-       Если серверный запрос ещё идёт,
-       новый запрос не отправляем.
-    */
 
     if (tapBusy) {
       return;
@@ -385,8 +388,14 @@ tapButton.addEventListener(
         );
 
 
+      console.log(
+        "TAP RESPONSE:",
+        data
+      );
+
+
       /* =====================
-         COOLDOWN ERROR
+         COOLDOWN
       ===================== */
 
       if (
@@ -394,13 +403,23 @@ tapButton.addEventListener(
         data.error === "cooldown"
       ) {
 
+        const remaining =
+          Number(data.remaining);
+
+
+        console.log(
+          "SERVER COOLDOWN:",
+          remaining
+        );
+
+
         startCooldown(
-          Number(data.remaining)
+          remaining
         );
 
 
         toast(
-          `⏳ ${Number(data.remaining).toFixed(1)}с`
+          `⏳ ${remaining.toFixed(1)}с`
         );
 
 
@@ -409,7 +428,7 @@ tapButton.addEventListener(
 
 
       /* =====================
-         ENERGY ERROR
+         ENERGY
       ===================== */
 
       if (
@@ -443,28 +462,34 @@ tapButton.addEventListener(
          SUCCESS
       ===================== */
 
-      /*
-         Баланс меняется сразу,
-         без дополнительного load().
-      */
-
       render(
         data.player
       );
 
 
       /*
-         Берём кулдаун именно
+         ВАЖНО:
+         кулдаун берём только
          из ответа сервера.
       */
 
+      const cooldown =
+        Number(data.tap_cd);
+
+
+      console.log(
+        "SUCCESS COOLDOWN:",
+        cooldown
+      );
+
+
       startCooldown(
-        Number(data.tap_cd)
+        cooldown
       );
 
 
       /* =====================
-         FLOATING REWARD
+         FLOAT REWARD
       ===================== */
 
       const float =
@@ -478,7 +503,9 @@ tapButton.addEventListener(
 
 
       float.textContent =
-        `+${Number(data.reward).toFixed(2)}`;
+        `+${Number(
+          data.reward
+        ).toFixed(2)}`;
 
 
       float.style.left =
@@ -494,9 +521,7 @@ tapButton.addEventListener(
 
 
       setTimeout(() => {
-
         float.remove();
-
       }, 750);
 
 
@@ -597,6 +622,7 @@ document
       openPanel(
         button.dataset.panel
       );
+
     };
 
   });
@@ -738,7 +764,6 @@ async function upgradesPanel() {
 
         </div>
 
-
         ${
           upgrade.maxed
 
@@ -839,7 +864,7 @@ function gemsPanel() {
 
 
 /* =========================
-   BUY +1
+   BUY
 ========================= */
 
 async function buy(kind) {
@@ -1071,5 +1096,6 @@ async function profilePanel() {
         <b>${data.code}</b>
 
       </div>
+
     `;
-      }
+  }
