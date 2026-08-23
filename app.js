@@ -1,4 +1,6 @@
 console.log("APP.JS LOADED");
+document.body.insertAdjacentHTML("afterbegin", '<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;padding:10px">JS ЗАПУСТИЛСЯ</div>');
+
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
