@@ -205,7 +205,7 @@ async function buy(kind) {
     body:JSON.stringify({user_id:uid, kind})
   });
 
-  async function buyMax(kind) {
+async function buyMax(kind) {
   const d = await api("/api/upgrade_max", {
     method: "POST",
     body: JSON.stringify({
