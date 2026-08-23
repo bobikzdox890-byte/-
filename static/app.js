@@ -152,18 +152,6 @@ async function api(url, options = {}) {
     );
 
 
-    if (!response.ok) {
-
-      console.error(
-        "API error:",
-        response.status,
-        data
-      );
-
-      return data;
-    }
-
-
     return data;
 
   } catch (error) {
@@ -201,96 +189,88 @@ function render(player) {
 
   $("max-energy").textContent =
     Math.floor(player.max_energy);
+
+  /*
+    Если сервер сообщил текущий кулдаун,
+    синхронизируем индикатор.
+  */
+
+  const cd =
+    Number(player.tap_cd);
+
+  if (
+    Number.isFinite(cd) &&
+    cd > 0
+  ) {
+
+    /*
+      При обычном render не запускаем
+      новый кулдаун, если он уже идёт.
+    */
+
+    if (
+      cooldownEnd <= Date.now()
+    ) {
+      setReady();
+    }
+  }
 }
 
 
 /* =========================
-   COOLDOWN
+   COOLDOWN UI
 ========================= */
 
-function startCooldown(seconds) {
+function updateCooldownIndicator(
+  remaining
+) {
 
-  clearInterval(cooldownTimer);
+  const indicator =
+    $("cooldown-indicator");
 
-  const button =
-    $("tap-button");
+  const time =
+    $("cooldown-time");
+
+  if (!indicator || !time) return;
 
 
-  const value =
-    Number(seconds);
+  if (remaining <= 0) {
 
+    indicator.classList.remove(
+      "cooldown-active"
+    );
 
-  if (
-    !Number.isFinite(value) ||
-    value <= 0
-  ) {
+    indicator.classList.add(
+      "cooldown-ready"
+    );
 
-    stopCooldown();
+    time.textContent =
+      "READY";
+
     return;
   }
 
 
-  /*
-    Защита фронта.
+  indicator.classList.remove(
+    "cooldown-ready"
+  );
 
-    Нормальный серверный кулдаун
-    не может быть больше 1 секунды.
-  */
-
-  const safeCooldown =
-    Math.min(
-      1,
-      Math.max(
-        0,
-        value
-      )
-    );
-
-
-  cooldownEnd =
-    Date.now() +
-    safeCooldown * 1000;
-
-
-  button.classList.add(
-    "cooldown"
+  indicator.classList.add(
+    "cooldown-active"
   );
 
 
-  function updateCooldown() {
+  /*
+    Показываем сотые секунды,
+    чтобы 0.05 действительно было видно.
+  */
 
-    const remaining =
-      Math.max(
-        0,
-        cooldownEnd - Date.now()
-      ) / 1000;
-
-
-    if (remaining <= 0) {
-
-      stopCooldown();
-
-      return;
-    }
-
-
-    button.textContent =
-      `⏳ ${remaining.toFixed(1)}`;
-  }
-
-
-  updateCooldown();
-
-
-  cooldownTimer =
-    setInterval(
-      updateCooldown,
-      30
-    );
+  time.textContent =
+    `${remaining.toFixed(2)}s`;
 }
 
 
-function stopCooldown() {
+function setReady() {
 
   clearInterval(
     cooldownTimer
@@ -309,9 +289,99 @@ function stopCooldown() {
     "cooldown"
   );
 
+  button.classList.add(
+    "ready"
+  );
 
-  button.textContent =
-    "TAP";
+
+  updateCooldownIndicator(0);
+}
+
+
+function startCooldown(seconds) {
+
+  clearInterval(
+    cooldownTimer
+  );
+
+
+  const value =
+    Number(seconds);
+
+
+  if (
+    !Number.isFinite(value) ||
+    value <= 0
+  ) {
+
+    setReady();
+
+    return;
+  }
+
+
+  /*
+    ВАЖНО:
+
+    НЕ обрезаем кулдаун до 1 секунды.
+
+    Сервер:
+    1.00
+    0.95
+    0.90
+    ...
+    0.05
+  */
+
+  cooldownEnd =
+    Date.now() +
+    value * 1000;
+
+
+  const button =
+    $("tap-button");
+
+
+  button.classList.remove(
+    "ready"
+  );
+
+  button.classList.add(
+    "cooldown"
+  );
+
+
+  function updateCooldown() {
+
+    const remaining =
+      Math.max(
+        0,
+        cooldownEnd - Date.now()
+      ) / 1000;
+
+
+    updateCooldownIndicator(
+      remaining
+    );
+
+
+    if (remaining <= 0) {
+
+      setReady();
+
+      return;
+    }
+  }
+
+
+  updateCooldown();
+
+
+  cooldownTimer =
+    setInterval(
+      updateCooldown,
+      20
+    );
 }
 
 
@@ -340,6 +410,19 @@ async function load() {
   render(
     data.player
   );
+
+
+  /*
+    При загрузке страницы смотрим,
+    сколько реально осталось до
+    следующего тапа.
+
+    Сам сервер отдаёт last_tap_at
+    только внутри базы, поэтому здесь
+    при обычной загрузке просто READY.
+  */
+
+  setReady();
 }
 
 
@@ -367,9 +450,8 @@ tapButton.addEventListener(
 
 
     /*
-      ВАЖНО:
-      визуальный отклик происходит
-      ДО любого запроса к серверу.
+      Визуальная реакция СРАЗУ.
+      Сервер здесь вообще не ждём.
     */
 
     fingerDown = true;
@@ -380,7 +462,7 @@ tapButton.addEventListener(
 
 
     /*
-      Не ждём сервер для анимации.
+      Защита от двойного запроса.
     */
 
     if (tapBusy) {
@@ -408,7 +490,7 @@ tapButton.addEventListener(
 
 
       /* =====================
-         COOLDOWN
+         COOLDOWN ERROR
       ===================== */
 
       if (
@@ -420,29 +502,24 @@ tapButton.addEventListener(
           Number(data.remaining);
 
 
-        /*
-          Защита от невозможного
-          серверного значения.
-        */
+        if (
+          Number.isFinite(remaining) &&
+          remaining > 0
+        ) {
 
-        const safeRemaining =
-          Math.min(
-            1,
-            Math.max(
-              0,
-              remaining
-            )
+          startCooldown(
+            remaining
           );
 
+          toast(
+            `⏳ ${remaining.toFixed(2)}с`
+          );
 
-        startCooldown(
-          safeRemaining
-        );
+        } else {
 
+          setReady();
 
-        toast(
-          `⏳ ${safeRemaining.toFixed(1)}с`
-        );
+        }
 
 
         return;
@@ -489,72 +566,76 @@ tapButton.addEventListener(
       );
 
 
+      /*
+        Берём настоящий кулдаун
+        от сервера.
+
+        НЕ Math.min(1, ...)
+        НЕ 45
+        НЕ любое другое ограничение.
+      */
+
       const cooldown =
         Number(data.tap_cd);
 
 
       startCooldown(
-        Math.min(
-          1,
-          Math.max(
-            0,
-            cooldown
-          )
-        )
+        cooldown
       );
 
 
       /* =====================
-         FLOAT REWARD
+         REWARD
       ===================== */
 
-      const float =
+      const reward =
         document.createElement(
           "div"
         );
 
 
-      float.className =
-        "float";
+      reward.className =
+        "reward-float";
 
 
-      float.textContent =
+      reward.textContent =
         `+${Number(
           data.reward
         ).toFixed(2)}`;
 
 
       /*
-        Случайная позиция
-        вокруг точки нажатия.
+        Награда появляется
+        около точки нажатия.
       */
 
       const randomX =
         event.clientX
         + (Math.random() * 100 - 50);
 
+
       const randomY =
         event.clientY
         + (Math.random() * 80 - 40);
 
 
-      float.style.left =
+      reward.style.left =
         `${randomX}px`;
 
 
-      float.style.top =
+      reward.style.top =
         `${randomY}px`;
 
 
       $("float-layer")
-        .appendChild(float);
+        .appendChild(reward);
 
 
       setTimeout(() => {
 
-        float.remove();
+        reward.remove();
 
-      }, 750);
+      }, 850);
 
 
       /* =====================
@@ -582,23 +663,21 @@ tapButton.addEventListener(
 
 
       /*
-        Старый бонус всегда удаляем.
+        Удаляем старые бонусы.
       */
 
-      const oldBonus =
-        document.querySelector(
+      document
+        .querySelectorAll(
           ".bonus-float"
+        )
+        .forEach(
+          element => element.remove()
         );
 
 
-      if (oldBonus) {
-        oldBonus.remove();
-      }
-
-
       /*
-        Создаём бонус только если
-        он реально выпал.
+        Новый бонус создаём
+        только если он реально выпал.
       */
 
       if (bonusText) {
@@ -617,19 +696,46 @@ tapButton.addEventListener(
           bonusText;
 
 
+        /*
+          Случайное место
+          на экране.
+        */
+
+        const marginX = 20;
+        const marginTop = 100;
+        const marginBottom = 150;
+
+
+        const maxX =
+          Math.max(
+            marginX,
+            window.innerWidth
+              - 150
+          );
+
+
+        const maxY =
+          Math.max(
+            marginTop,
+            window.innerHeight
+              - marginBottom
+              - 60
+          );
+
+
         const randomBonusX =
-          20 +
+          marginX +
           Math.random()
           * (
-            window.innerWidth - 120
+            maxX - marginX
           );
 
 
         const randomBonusY =
-          80 +
+          marginTop +
           Math.random()
           * (
-            window.innerHeight - 220
+            maxY - marginTop
           );
 
 
@@ -641,7 +747,7 @@ tapButton.addEventListener(
           `${randomBonusY}px`;
 
 
-        $("float-layer")
+        $("bonus-layer")
           .appendChild(bonus);
 
 
@@ -649,7 +755,7 @@ tapButton.addEventListener(
 
           bonus.remove();
 
-        }, 1400);
+        }, 850);
       }
 
 
@@ -1267,4 +1373,4 @@ async function profilePanel() {
       </div>
 
     `;
-                 }
+                    }
