@@ -741,4 +741,21 @@ def upgrades():
 
             "level": level,
 
-            "cost
+                        "cost":
+                round(
+                    cost_func(row),
+                    2
+                ),
+
+            "currency":
+                upgrade_currency(kind),
+
+            "max_level":
+                max_level,
+
+            "maxed":
+                (
+                    max_level is not None
+                    and level >= max_level
+                )
+}
