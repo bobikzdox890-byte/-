@@ -1,9 +1,11 @@
 import os
 import sqlite3
 import time
-from flask import Flask, jsonify, request, render_template
+from flask_cors import CORS, jsonify, request, render_template
+
 
 app = Flask(__name__)
+CORS(app)
 DB = os.getenv("DB_PATH", "game.db")
 
 # ---- Game constants ----
