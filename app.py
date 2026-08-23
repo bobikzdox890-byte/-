@@ -392,34 +392,6 @@ def index():
 # STATE
 # =========================
 
-@app.get("/api/state")
-def state():
-
-    user_id = request.args.get(
-        "user_id",
-        "local-demo"
-    )
-
-    username = request.args.get(
-        "username",
-        "Player"
-    )
-
-    player = get_player(
-        user_id,
-        username
-    )
-
-    return jsonify({
-        "ok": True,
-        "player": serialize(player)
-    })
-
-
-# =========================
-# TAP
-# =========================
-
 @app.post("/api/tap")
 def tap():
 
@@ -444,32 +416,72 @@ def tap():
         username
     )
 
+    # Обновляем энергию
     row, max_energy, _ = regen_energy(row)
 
+    # Получаем нормальный кулдаун
     cd = tap_cooldown(row)
 
-    elapsed = (
-        now()
-        - row["last_tap_at"]
-    )
+    current_time = now()
 
+    # Защита от сломанного last_tap_at.
+    # Если он оказался в будущем — сбрасываем его.
+    if row["last_tap_at"] > current_time:
+
+        conn = db()
+
+        conn.execute(
+            """
+            UPDATE players
+            SET last_tap_at=%s
+            WHERE user_id=%s
+            """,
+            (
+                current_time - cd,
+                user_id
+            )
+        )
+
+        conn.commit()
+        conn.close()
+
+        row = get_player(user_id)
+
+    # Сколько прошло после прошлого тапа
+    elapsed = current_time - row["last_tap_at"]
+
+    # Кулдаун ещё не закончился
     if elapsed < cd:
+
+        remaining = max(
+            0,
+            cd - elapsed
+        )
 
         return jsonify({
             "ok": False,
             "error": "cooldown",
             "remaining": round(
-                cd - elapsed,
+                remaining,
+                2
+            ),
+            "tap_cd": round(
+                cd,
                 2
             )
         }), 429
 
+    # Проверяем энергию
     if row["energy"] < 1:
 
         return jsonify({
             "ok": False,
             "error": "energy"
         }), 400
+
+    # =========================
+    # REWARD
+    # =========================
 
     reward = tap_reward(row)
 
@@ -496,6 +508,10 @@ def tap():
         * bonus
     )
 
+    # =========================
+    # GEMS
+    # =========================
+
     gem_drop = (
         random.random()
         < gem_chance(row)
@@ -505,6 +521,12 @@ def tap():
         row["gems"]
         + (1 if gem_drop else 0)
     )
+
+    # =========================
+    # SAVE TAP
+    # =========================
+
+    tap_time = now()
 
     conn = db()
 
@@ -521,7 +543,7 @@ def tap():
         (
             reward,
             new_gems,
-            now(),
+            tap_time,
             user_id
         )
     )
@@ -529,6 +551,7 @@ def tap():
     conn.commit()
     conn.close()
 
+    # Получаем актуальное состояние
     row = get_player(
         user_id
     )
@@ -552,10 +575,15 @@ def tap():
         "x5":
             x5,
 
+        "tap_cd":
+            round(
+                cd,
+                2
+            ),
+
         "player":
             serialize(row)
     })
-
 
 # =========================
 # UPGRADE COSTS
