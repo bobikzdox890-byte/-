@@ -139,6 +139,8 @@ $("tap-area").addEventListener(
   "click",
   async (e) => {
 
+    console.log("TAP CLICKED");
+
     if (
       e.target.closest(".bottom") ||
       e.target.closest(".panel")
@@ -216,6 +218,11 @@ $("tap-area").addEventListener(
 ========================= */
 
 const panel = $("panel");
+
+console.log("APP JS WORKS");
+console.log("PANEL:", panel);
+console.log("TAP AREA:", $("tap-area"));
+console.log("BOTTOM BUTTONS:", document.querySelectorAll(".bottom button"));
 
 
 $("close-panel").onclick = () => {
