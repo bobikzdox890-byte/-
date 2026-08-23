@@ -488,11 +488,7 @@ async function buy(kind) {
 
 async function buyMax(kind) {
 
-  console.log(
-    "BUY MAX:",
-    kind
-  );
-
+  console.log("BUY MAX:", kind);
 
   const d = await api(
     "/api/upgrade_max",
@@ -506,49 +502,39 @@ async function buyMax(kind) {
     }
   );
 
+  console.log("BUY MAX RESPONSE:", d);
 
-  console.log(
-    "BUY MAX RESPONSE:",
-    d
-  );
+  if (!d.ok) {
 
+    if (d.error === "money") {
 
-async function ratingPanel() {
+      toast(
+        `❌ Нужно ${d.cost} ${d.currency}`
+      );
 
-  const d =
-    await api("/api/leaderboard");
+    } else if (d.error === "max_level") {
 
+      toast(
+        "🏆 Максимальный уровень"
+      );
 
-  let html =
-    "<h2>🏆 Рейтинг</h2>";
+    } else {
 
-
-  (d.items || []).forEach(
-    (x, i) => {
-
-      html += `
-
-        <div class="row">
-
-          <div>
-            ${i + 1}.
-            ${x.username}
-          </div>
-
-          <b>
-            ${Number(x.dollars).toFixed(0)}
-            8OLLAR
-          </b>
-
-        </div>
-
-      `;
+      toast(
+        "❌ Не удалось купить MAX"
+      );
     }
+
+    return;
+  }
+
+  render(d.player);
+
+  toast(
+    `🔥 Куплено уровней: ${d.levels_bought}`
   );
 
-
-  $("panel-content").innerHTML =
-    html;
+  upgradesPanel();
 }
 
 
