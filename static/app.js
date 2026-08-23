@@ -397,3 +397,277 @@ async function upgradesPanel() {
 
     `;
   }
+$("panel-content").innerHTML = html;
+}
+
+
+/* =========================
+   GEMS PANEL
+========================= */
+
+function gemsPanel() {
+
+  $("panel-content").innerHTML = `
+
+    <h2>💎 G3MS</h2>
+
+    <div class="blue-menu">
+
+      <button onclick="buy('double')">
+        ⚡ Дабл тап
+      </button>
+
+      <button onclick="buy('multiplier')">
+        📈 Множитель 8OLLAR
+      </button>
+
+      <button onclick="buy('gem_income')">
+        💎 Доход G3MS
+      </button>
+
+    </div>
+
+    <div class="card">
+      💎 Баланс:
+      ${state.gems.toFixed(0)}
+      G3MS
+    </div>
+
+    <div class="card">
+      ⚡ Дабл:
+      ${(state.double_chance * 100).toFixed(0)}%
+      / 50%
+    </div>
+
+    <div class="card">
+      📈 Множитель:
+      x${state.income_multiplier.toFixed(2)}
+    </div>
+
+    <div class="card">
+      💎 Шанс G3MS:
+      ${(state.gem_chance * 100).toFixed(0)}%
+    </div>
+
+  `;
+}
+
+
+/* =========================
+   BUY +1
+========================= */
+
+async function buy(kind) {
+
+  const d = await api(
+    "/api/upgrade",
+    {
+      method: "POST",
+
+      body: JSON.stringify({
+        user_id: uid,
+        kind: kind
+      })
+    }
+  );
+
+
+  if (!d.ok) {
+
+    if (d.error === "money") {
+
+      toast(
+        `❌ Нужно ${d.cost} ${d.currency}`
+      );
+
+    } else if (d.error === "max_level") {
+
+      toast(
+        "🏆 Максимальный уровень"
+      );
+
+    } else {
+
+      toast(
+        "❌ Не удалось купить"
+      );
+    }
+
+    return;
+  }
+
+
+  render(d.player);
+
+  toast("✅ Уровень повышен");
+
+
+  if (
+    kind === "double" ||
+    kind === "multiplier" ||
+    kind === "gem_income"
+  ) {
+
+    gemsPanel();
+
+  } else {
+
+    upgradesPanel();
+  }
+}
+
+
+/* =========================
+   BUY MAX
+========================= */
+
+async function buyMax(kind) {
+
+  console.log("BUY MAX:", kind);
+
+  const d = await api(
+    "/api/upgrade_max",
+    {
+      method: "POST",
+
+      body: JSON.stringify({
+        user_id: uid,
+        kind: kind
+      })
+    }
+  );
+
+  console.log("BUY MAX RESPONSE:", d);
+
+
+  if (!d.ok) {
+
+    if (d.error === "money") {
+
+      toast(
+        `❌ Нужно ${d.cost} ${d.currency}`
+      );
+
+    } else if (d.error === "max_level") {
+
+      toast(
+        "🏆 Максимальный уровень"
+      );
+
+    } else {
+
+      toast(
+        "❌ Не удалось купить MAX"
+      );
+    }
+
+    return;
+  }
+
+
+  render(d.player);
+
+  toast(
+    `🔥 Куплено уровней: ${d.levels_bought}`
+  );
+
+  upgradesPanel();
+}
+
+
+/* =========================
+   RATING
+========================= */
+
+async function ratingPanel() {
+
+  const d = await api(
+    "/api/leaderboard"
+  );
+
+  let html =
+    "<h2>🏆 Рейтинг</h2>";
+
+
+  (d.items || []).forEach(
+    (x, i) => {
+
+      html += `
+
+        <div class="row">
+
+          <div>
+            ${i + 1}.
+            ${x.username}
+          </div>
+
+          <b>
+            ${Number(x.dollars).toFixed(0)}
+            8OLLAR
+          </b>
+
+        </div>
+
+      `;
+    }
+  );
+
+
+  $("panel-content").innerHTML = html;
+}
+
+
+/* =========================
+   PROFILE
+========================= */
+
+async function profilePanel() {
+
+  const d = await api(
+    `/api/referrals?user_id=${encodeURIComponent(uid)}`
+  );
+
+
+  $("panel-content").innerHTML = `
+
+    <h2>👤 Профиль</h2>
+
+    <div class="card">
+
+      <b>${username}</b>
+
+      <br>
+
+      ID:
+      ${uid}
+
+    </div>
+
+    <div class="card">
+
+      🪙 8OLLAR:
+      ${state.dollars.toFixed(2)}
+
+      <br>
+
+      💎 G3MS:
+      ${state.gems.toFixed(0)}
+
+    </div>
+
+    <div class="card">
+
+      👥 Рефералы:
+      ${d.referrals}
+
+    </div>
+
+    <div class="card">
+
+      🔗 Реферальный код:
+      <b>${d.code}</b>
+
+    </div>
+
+  `;
+}
