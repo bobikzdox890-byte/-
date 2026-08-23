@@ -16,14 +16,36 @@ CORS(app)
 # DATABASE
 # =========================
 
+
+class DBConnection:
+
+    def __init__(self):
+        self.conn = psycopg2.connect(
+            os.getenv("DATABASE_URL")
+        )
+
+    def execute(self, query, params=None):
+
+        cursor = self.conn.cursor(
+            cursor_factory=RealDictCursor
+        )
+
+        cursor.execute(
+            query,
+            params
+        )
+
+        return cursor
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
+
 def db():
-    conn = psycopg2.connect(
-        os.getenv("DATABASE_URL")
-    )
-
-    conn.autocommit = False
-
-    return conn
+    return DBConnection()
 
 # =========================
 # GAME CONSTANTS
