@@ -1,4 +1,4 @@
-window.onerror = function(message, source, lineno, colno, error) {
+window.onerror = function(message, source, lineno) {
   document.body.insertAdjacentHTML(
     "afterbegin",
     `<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;padding:15px;font-size:14px">
@@ -7,6 +7,10 @@ window.onerror = function(message, source, lineno, colno, error) {
   );
 };
 
+
+/* =========================
+   TELEGRAM
+========================= */
 
 const tg = window.Telegram?.WebApp;
 
@@ -23,6 +27,7 @@ const user = tg?.initDataUnsafe?.user || {
 
 
 const uid = String(user.id);
+
 const username =
   user.username ||
   user.first_name ||
@@ -33,16 +38,25 @@ const $ = id =>
   document.getElementById(id);
 
 
-const toast = msg => {
+/* =========================
+   TOAST
+========================= */
 
-  $("toast").textContent = msg;
+let toastTimer = null;
 
-  $("toast").classList.add("show");
+function toast(message) {
 
-  setTimeout(() => {
-    $("toast").classList.remove("show");
+  const element = $("toast");
+
+  element.textContent = message;
+  element.classList.add("show");
+
+  clearTimeout(toastTimer);
+
+  toastTimer = setTimeout(() => {
+    element.classList.remove("show");
   }, 1400);
-};
+}
 
 
 /* =========================
@@ -52,27 +66,25 @@ const toast = msg => {
 let state = null;
 
 let cooldownTimer = null;
-
 let cooldownEnd = 0;
 
-let requestNumber = 0;
-
-let tapInProgress = false;
-
-
-const API =
-  "https://83s8tvz3me.onrender.com";
+let tapBusy = false;
+let fingerDown = false;
 
 
 /* =========================
    API
 ========================= */
 
+const API =
+  "https://83s8tvz3me.onrender.com";
+
+
 async function api(url, options = {}) {
 
   try {
 
-    const r = await fetch(
+    const response = await fetch(
       API + url,
       {
         method:
@@ -90,15 +102,14 @@ async function api(url, options = {}) {
 
 
     const text =
-      await r.text();
+      await response.text();
 
 
     let data;
 
     try {
 
-      data =
-        JSON.parse(text);
+      data = JSON.parse(text);
 
     } catch {
 
@@ -114,11 +125,11 @@ async function api(url, options = {}) {
     }
 
 
-    if (!r.ok) {
+    if (!response.ok) {
 
       console.error(
         "API error:",
-        r.status,
+        response.status,
         data
       );
 
@@ -128,12 +139,11 @@ async function api(url, options = {}) {
 
     return data;
 
-
-  } catch (err) {
+  } catch (error) {
 
     console.error(
-      "API connection error:",
-      err
+      "Connection error:",
+      error
     );
 
     toast(
@@ -152,21 +162,21 @@ async function api(url, options = {}) {
    RENDER
 ========================= */
 
-function render(p) {
+function render(player) {
 
-  state = p;
+  state = player;
 
 
   $("dollars").textContent =
-    Number(p.dollars).toFixed(2);
+    Number(player.dollars).toFixed(2);
 
 
   $("energy").textContent =
-    Math.floor(p.energy);
+    Math.floor(player.energy);
 
 
   $("max-energy").textContent =
-    Math.floor(p.max_energy);
+    Math.floor(player.max_energy);
 }
 
 
@@ -185,16 +195,23 @@ function startCooldown(seconds) {
     $("tap-button");
 
 
-  const safeSeconds =
-    Math.max(
-      0,
-      Number(seconds) || 0
-    );
+  const value =
+    Number(seconds);
+
+
+  if (
+    !Number.isFinite(value) ||
+    value <= 0
+  ) {
+
+    stopCooldown();
+    return;
+  }
 
 
   cooldownEnd =
-    Date.now()
-    + safeSeconds * 1000;
+    Date.now() +
+    value * 1000;
 
 
   button.classList.add(
@@ -202,7 +219,7 @@ function startCooldown(seconds) {
   );
 
 
-  function update() {
+  function updateCooldown() {
 
     const remaining =
       Math.max(
@@ -213,23 +230,7 @@ function startCooldown(seconds) {
 
     if (remaining <= 0) {
 
-      clearInterval(
-        cooldownTimer
-      );
-
-      cooldownTimer = null;
-
-      button.classList.remove(
-        "cooldown"
-      );
-
-      button.textContent =
-        "TAP";
-
-      button.classList.remove(
-        "ready"
-      );
-
+      stopCooldown();
       return;
     }
 
@@ -239,12 +240,12 @@ function startCooldown(seconds) {
   }
 
 
-  update();
+  updateCooldown();
 
 
   cooldownTimer =
     setInterval(
-      update,
+      updateCooldown,
       50
     );
 }
@@ -260,6 +261,7 @@ function stopCooldown() {
 
   cooldownEnd = 0;
 
+
   const button =
     $("tap-button");
 
@@ -268,142 +270,151 @@ function stopCooldown() {
     "cooldown"
   );
 
+
   button.textContent =
     "TAP";
 }
 
 
 /* =========================
-   LOAD
+   LOAD ONCE
 ========================= */
 
 async function load() {
 
-  /*
-   Не даём старому load
-   перезаписать более новый запрос.
-  */
-
-  const currentRequest =
-    ++requestNumber;
+  const data =
+    await api(
+      `/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`
+    );
 
 
-  const d = await api(
-    `/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`
+  console.log(
+    "INITIAL STATE:",
+    data
   );
 
 
-  if (
-    currentRequest !== requestNumber
-  ) {
+  if (!data.ok) {
+
+    toast(
+      "❌ API не отвечает"
+    );
+
     return;
   }
 
 
-  console.log(
-    "STATE:",
-    d
+  render(
+    data.player
   );
-
-
-  if (d.ok) {
-
-    render(d.player);
-
-  } else {
-
-    console.error(
-      "STATE ERROR:",
-      d
-    );
-  }
 }
 
 
 load();
 
 
-/*
-   Больше НЕ делаем load каждую секунду.
-   Именно этот постоянный опрос мог
-   создавать лишние задержки/конкуренцию
-   с тапами.
-*/
-
-
 /* =========================
-   TAP
+   TAP BUTTON
 ========================= */
 
 const tapButton =
   $("tap-button");
 
 
+/*
+   Палец нажал кнопку.
+   Никаких click — реакция сразу.
+*/
+
 tapButton.addEventListener(
   "pointerdown",
-  async (e) => {
+  async (event) => {
 
-    e.preventDefault();
+    event.preventDefault();
 
 
-    if (
-      tapInProgress
-    ) {
+    /*
+       Если палец уже зажат —
+       второй запрос не отправляем.
+    */
+
+    if (fingerDown) {
       return;
     }
 
 
-    tapInProgress = true;
+    fingerDown = true;
 
+
+    /*
+       Визуально зажимаем кнопку
+       МГНОВЕННО.
+    */
 
     tapButton.classList.add(
       "pressed"
     );
 
 
+    /*
+       Если серверный запрос ещё идёт,
+       новый запрос не отправляем.
+    */
+
+    if (tapBusy) {
+      return;
+    }
+
+
+    tapBusy = true;
+
+
     try {
 
-      const d = await api(
-        "/api/tap",
-        {
-          method: "POST",
+      const data =
+        await api(
+          "/api/tap",
+          {
+            method: "POST",
 
-          body: JSON.stringify({
-            user_id: uid,
-            username: username
-          })
-        }
-      );
+            body: JSON.stringify({
+              user_id: uid,
+              username: username
+            })
+          }
+        );
 
 
       /* =====================
-         COOLDOWN
+         COOLDOWN ERROR
       ===================== */
 
       if (
-        !d.ok &&
-        d.error === "cooldown"
+        !data.ok &&
+        data.error === "cooldown"
       ) {
 
         startCooldown(
-          d.remaining
+          Number(data.remaining)
         );
 
+
         toast(
-          `⏳ ${Number(d.remaining).toFixed(1)}с`
+          `⏳ ${Number(data.remaining).toFixed(1)}с`
         );
+
 
         return;
       }
 
 
       /* =====================
-         ENERGY
+         ENERGY ERROR
       ===================== */
 
       if (
-        !d.ok &&
-        d.error === "energy"
+        !data.ok &&
+        data.error === "energy"
       ) {
 
         toast(
@@ -418,7 +429,7 @@ tapButton.addEventListener(
          OTHER ERROR
       ===================== */
 
-      if (!d.ok) {
+      if (!data.ok) {
 
         toast(
           "❌ Ошибка тапа"
@@ -432,70 +443,80 @@ tapButton.addEventListener(
          SUCCESS
       ===================== */
 
+      /*
+         Баланс меняется сразу,
+         без дополнительного load().
+      */
+
       render(
-        d.player
+        data.player
       );
 
 
       /*
-       После успешного тапа
-       запускаем настоящий cooldown
-       сразу, не дожидаясь load().
+         Берём кулдаун именно
+         из ответа сервера.
       */
 
       startCooldown(
-        d.player.tap_cd
+        Number(data.tap_cd)
       );
 
 
-      const f =
+      /* =====================
+         FLOATING REWARD
+      ===================== */
+
+      const float =
         document.createElement(
           "div"
         );
 
 
-      f.className =
+      float.className =
         "float";
 
 
-      f.textContent =
-        `+${Number(
-          d.reward
-        ).toFixed(2)}`;
+      float.textContent =
+        `+${Number(data.reward).toFixed(2)}`;
 
 
-      f.style.left =
-        `${e.clientX - 20}px`;
+      float.style.left =
+        `${event.clientX - 20}px`;
 
 
-      f.style.top =
-        `${e.clientY - 20}px`;
+      float.style.top =
+        `${event.clientY - 20}px`;
 
 
       $("float-layer")
-        .appendChild(f);
+        .appendChild(float);
 
 
       setTimeout(() => {
 
-        f.remove();
+        float.remove();
 
       }, 750);
 
 
-      if (d.gem_drop) {
+      /* =====================
+         BONUSES
+      ===================== */
+
+      if (data.gem_drop) {
 
         toast(
           "💎 +1 G3MS"
         );
 
-      } else if (d.x5) {
+      } else if (data.x5) {
 
         toast(
           "🔥 X5!"
         );
 
-      } else if (d.doubled) {
+      } else if (data.doubled) {
 
         toast(
           "⚡ DOUBLE!"
@@ -505,18 +526,25 @@ tapButton.addEventListener(
 
     } finally {
 
-      tapInProgress =
-        false;
+      tapBusy = false;
     }
   }
 );
 
 
 /* =========================
-   POINTER UP
+   RELEASE FINGER
 ========================= */
 
-function releaseButton() {
+function releaseTap(event) {
+
+  if (event) {
+    event.preventDefault();
+  }
+
+
+  fingerDown = false;
+
 
   tapButton.classList.remove(
     "pressed"
@@ -526,19 +554,19 @@ function releaseButton() {
 
 tapButton.addEventListener(
   "pointerup",
-  releaseButton
+  releaseTap
 );
 
 
 tapButton.addEventListener(
   "pointercancel",
-  releaseButton
+  releaseTap
 );
 
 
 tapButton.addEventListener(
   "pointerleave",
-  releaseButton
+  releaseTap
 );
 
 
@@ -562,12 +590,12 @@ document
   .querySelectorAll(
     ".bottom button"
   )
-  .forEach(btn => {
+  .forEach(button => {
 
-    btn.onclick = () => {
+    button.onclick = () => {
 
       openPanel(
-        btn.dataset.panel
+        button.dataset.panel
       );
     };
 
@@ -605,12 +633,13 @@ function openPanel(type) {
 
 async function upgradesPanel() {
 
-  const d = await api(
-    `/api/upgrades?user_id=${encodeURIComponent(uid)}`
-  );
+  const data =
+    await api(
+      `/api/upgrades?user_id=${encodeURIComponent(uid)}`
+    );
 
 
-  if (!d.ok) {
+  if (!data.ok) {
 
     $("panel-content").innerHTML =
       "<h2>❌ Не удалось загрузить прокачки</h2>";
@@ -619,8 +648,8 @@ async function upgradesPanel() {
   }
 
 
-  const u =
-    d.upgrades;
+  const upgrades =
+    data.upgrades;
 
 
   const names = {
@@ -652,24 +681,24 @@ async function upgradesPanel() {
     ]
   ) {
 
-    const x =
-      u[kind];
+    const upgrade =
+      upgrades[kind];
 
 
     const currency =
-      x.currency === "gems"
+      upgrade.currency === "gems"
         ? "💎"
         : "8OLLAR";
 
 
     const balance =
-      x.currency === "gems"
+      upgrade.currency === "gems"
         ? state.gems
         : state.dollars;
 
 
     const enough =
-      balance >= x.cost;
+      balance >= upgrade.cost;
 
 
     const color =
@@ -682,14 +711,16 @@ async function upgradesPanel() {
 
       <div class="card upgrade-card">
 
-        <h3>${names[kind]}</h3>
+        <h3>
+          ${names[kind]}
+        </h3>
 
         <div class="upgrade-price">
 
           ${
-            x.maxed
+            upgrade.maxed
               ? "МАКСИМУМ"
-              : `${x.cost.toFixed(2)} ${currency}`
+              : `${upgrade.cost.toFixed(2)} ${currency}`
           }
 
         </div>
@@ -697,26 +728,29 @@ async function upgradesPanel() {
         <div class="upgrade-level">
 
           Уровень:
-          <b>${x.level}</b>
+          <b>${upgrade.level}</b>
 
           ${
-            x.max_level !== null
-              ? ` / ${x.max_level}`
+            upgrade.max_level !== null
+              ? ` / ${upgrade.max_level}`
               : ""
           }
 
         </div>
 
+
         ${
-          x.maxed
+          upgrade.maxed
 
             ? `
+
               <button
                 class="upgrade-max"
                 disabled
               >
                 🏆 МАКСИМУМ
               </button>
+
             `
 
             : `
@@ -810,29 +844,30 @@ function gemsPanel() {
 
 async function buy(kind) {
 
-  const d = await api(
-    "/api/upgrade",
-    {
-      method: "POST",
+  const data =
+    await api(
+      "/api/upgrade",
+      {
+        method: "POST",
 
-      body: JSON.stringify({
-        user_id: uid,
-        kind: kind
-      })
-    }
-  );
+        body: JSON.stringify({
+          user_id: uid,
+          kind: kind
+        })
+      }
+    );
 
 
-  if (!d.ok) {
+  if (!data.ok) {
 
-    if (d.error === "money") {
+    if (data.error === "money") {
 
       toast(
-        `❌ Нужно ${d.cost} ${d.currency}`
+        `❌ Нужно ${data.cost} ${data.currency}`
       );
 
     } else if (
-      d.error === "max_level"
+      data.error === "max_level"
     ) {
 
       toast(
@@ -851,8 +886,9 @@ async function buy(kind) {
 
 
   render(
-    d.player
+    data.player
   );
+
 
   toast(
     "✅ Уровень повышен"
@@ -880,29 +916,30 @@ async function buy(kind) {
 
 async function buyMax(kind) {
 
-  const d = await api(
-    "/api/upgrade_max",
-    {
-      method: "POST",
+  const data =
+    await api(
+      "/api/upgrade_max",
+      {
+        method: "POST",
 
-      body: JSON.stringify({
-        user_id: uid,
-        kind: kind
-      })
-    }
-  );
+        body: JSON.stringify({
+          user_id: uid,
+          kind: kind
+        })
+      }
+    );
 
 
-  if (!d.ok) {
+  if (!data.ok) {
 
-    if (d.error === "money") {
+    if (data.error === "money") {
 
       toast(
-        `❌ Нужно ${d.cost} ${d.currency}`
+        `❌ Нужно ${data.cost} ${data.currency}`
       );
 
     } else if (
-      d.error === "max_level"
+      data.error === "max_level"
     ) {
 
       toast(
@@ -921,12 +958,12 @@ async function buyMax(kind) {
 
 
   render(
-    d.player
+    data.player
   );
 
 
   toast(
-    `🔥 Куплено уровней: ${d.levels_bought}`
+    `🔥 Куплено уровней: ${data.levels_bought}`
   );
 
 
@@ -940,7 +977,7 @@ async function buyMax(kind) {
 
 async function ratingPanel() {
 
-  const d =
+  const data =
     await api(
       "/api/leaderboard"
     );
@@ -950,22 +987,22 @@ async function ratingPanel() {
     "<h2>🏆 Рейтинг</h2>";
 
 
-  (d.items || [])
+  (data.items || [])
     .forEach(
-      (x, i) => {
+      (item, index) => {
 
         html += `
 
           <div class="row">
 
             <div>
-              ${i + 1}.
-              ${x.username}
+              ${index + 1}.
+              ${item.username}
             </div>
 
             <b>
               ${Number(
-                x.dollars
+                item.dollars
               ).toFixed(0)}
               8OLLAR
             </b>
@@ -987,7 +1024,7 @@ async function ratingPanel() {
 
 async function profilePanel() {
 
-  const d =
+  const data =
     await api(
       `/api/referrals?user_id=${encodeURIComponent(uid)}`
     );
@@ -1024,15 +1061,15 @@ async function profilePanel() {
       <div class="card">
 
         👥 Рефералы:
-        ${d.referrals}
+        ${data.referrals}
 
       </div>
 
       <div class="card">
 
         🔗 Реферальный код:
-        <b>${d.code}</b>
+        <b>${data.code}</b>
 
       </div>
     `;
-    }
+      }
