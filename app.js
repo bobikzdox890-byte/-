@@ -16,12 +16,27 @@ let state = null;
 
 const API = "https://83s8tvz3me.onrender.com";
 
-async function api(url, options={}) {
-  const r = await fetch(API + url, {
-    headers: {"Content-Type":"application/json"},
-    ...options
-  });
-  return await r.json();
+async function api(url, options = {}) {
+  try {
+    const r = await fetch(API + url, {
+      method: options.method || "GET",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: options.body
+    });
+
+    if (!r.ok) {
+      console.error("API error:", r.status, await r.text());
+      return { ok: false, error: "api_error" };
+    }
+
+    return await r.json();
+  } catch (err) {
+    console.error("API connection error:", err);
+    toast("❌ Нет связи с сервером");
+    return { ok: false, error: "connection" };
+  }
 }
     headers: {"Content-Type":"application/json"},
     ...options
