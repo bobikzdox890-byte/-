@@ -24,10 +24,6 @@
 
 <body>
 
-  <!-- =========================
-       NEON FRAME
-  ========================= -->
-
   <div class="neon"></div>
 
 
@@ -42,7 +38,7 @@
       <span>8OLLAR</span>
 
       <b id="dollars">
-        0
+        0.00
       </b>
 
     </div>
@@ -68,7 +64,27 @@
 
 
   <!-- =========================
-       MAIN TAP AREA
+       COOLDOWN
+  ========================= -->
+
+  <div
+    id="cooldown-indicator"
+    class="cooldown-ready"
+  >
+
+    <div id="cooldown-label">
+      COOLDOWN
+    </div>
+
+    <div id="cooldown-time">
+      READY
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       TAP AREA
   ========================= -->
 
   <main id="tap-area">
@@ -91,11 +107,21 @@
 
 
   <!-- =========================
-       FLOATING REWARDS
+       REWARD
   ========================= -->
 
   <div
     id="float-layer"
+    aria-hidden="true"
+  ></div>
+
+
+  <!-- =========================
+       BONUS
+  ========================= -->
+
+  <div
+    id="bonus-layer"
     aria-hidden="true"
   ></div>
 
@@ -148,7 +174,7 @@
 
 
   <!-- =========================
-       SIDE PANEL
+       PANEL
   ========================= -->
 
   <aside
@@ -183,14 +209,10 @@
   ></div>
 
 
-  <!-- =========================
-       JAVASCRIPT
-  ========================= -->
-
   <script
     src="{{ url_for('static', filename='app.js') }}"
   ></script>
 
 </body>
 
-</html>
+    </html>
