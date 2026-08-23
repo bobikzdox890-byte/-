@@ -205,6 +205,31 @@ async function buy(kind) {
     body:JSON.stringify({user_id:uid, kind})
   });
 
+  async function buyMax(kind) {
+  const d = await api("/api/upgrade_max", {
+    method: "POST",
+    body: JSON.stringify({
+      user_id: uid,
+      kind: kind
+    })
+  });
+
+  if (!d.ok) {
+    if (d.error === "money") {
+      toast(`❌ Нужно ${d.cost} ${d.currency}`);
+    } else if (d.error === "max_level") {
+      toast("🏆 Максимальный уровень");
+    } else {
+      toast("❌ Не удалось купить");
+    }
+    return;
+  }
+
+  render(d.player);
+  toast(`🔥 Куплено уровней: ${d.levels_bought}`);
+  upgradesPanel();
+  }
+
   if (!d.ok) {
     if (d.error === "money") toast(`❌ Нужно ${d.cost} ${d.currency}`);
     else if (d.error === "max_level") toast("🏁 Максимальный уровень");
