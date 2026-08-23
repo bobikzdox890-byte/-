@@ -30,8 +30,9 @@ X5_CHANCE = 0.05
 # =========================
 
 def db():
-    conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(
+        os.getenv("DATABASE_URL")
+    )
     return conn
 
 
