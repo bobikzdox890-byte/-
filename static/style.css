@@ -45,6 +45,8 @@ body {
   border-radius: 18px;
 
   pointer-events: none;
+
+  z-index: 20;
 }
 
 
@@ -62,7 +64,7 @@ header {
   display: flex;
   justify-content: space-between;
 
-  z-index: 5;
+  z-index: 10;
 }
 
 .balance,
@@ -100,6 +102,80 @@ header {
 
 
 /* =========================
+   COOLDOWN
+========================= */
+
+#cooldown-indicator {
+  position: fixed;
+
+  top: 86px;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  min-width: 125px;
+
+  padding: 8px 15px;
+
+  border-radius: 13px;
+
+  text-align: center;
+
+  background: rgba(10, 12, 20, .88);
+
+  backdrop-filter: blur(8px);
+
+  z-index: 10;
+
+  pointer-events: none;
+
+  transition:
+    border-color .15s ease,
+    box-shadow .15s ease;
+}
+
+#cooldown-indicator.cooldown-active {
+  border: 1px solid rgba(233, 35, 63, .75);
+
+  box-shadow:
+    0 0 15px rgba(233, 35, 63, .22);
+}
+
+#cooldown-indicator.cooldown-ready {
+  border: 1px solid rgba(25, 217, 107, .8);
+
+  box-shadow:
+    0 0 18px rgba(25, 217, 107, .25);
+}
+
+#cooldown-label {
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 2px;
+
+  opacity: .8;
+}
+
+.cooldown-active #cooldown-label {
+  color: #ff5268;
+}
+
+.cooldown-ready #cooldown-label {
+  color: #19d96b;
+}
+
+#cooldown-time {
+  margin-top: 2px;
+
+  font-size: 20px;
+
+  font-weight: 900;
+}
+
+
+/* =========================
    TAP AREA
 ========================= */
 
@@ -129,6 +205,7 @@ header {
   padding: 0;
 
   border-radius: 50%;
+
   border: 4px solid #ff5066;
 
   background:
@@ -160,11 +237,6 @@ header {
   outline: none;
 }
 
-
-/* =========================
-   BUTTON PRESSED
-========================= */
-
 #tap-button.pressed {
   transform: scale(.91);
 
@@ -177,11 +249,6 @@ header {
     0 0 50px rgba(255, 20, 50, .20);
 }
 
-
-/* =========================
-   BUTTON COOLDOWN
-========================= */
-
 #tap-button.cooldown {
   border-color: var(--red);
 
@@ -189,11 +256,6 @@ header {
     0 0 30px rgba(255, 30, 65, .45),
     0 0 80px rgba(255, 20, 50, .18);
 }
-
-
-/* =========================
-   BUTTON READY
-========================= */
 
 #tap-button.ready {
   border-color: var(--green);
@@ -216,6 +278,7 @@ header {
   pointer-events: none;
 
   font-size: 24px;
+
   font-weight: 900;
 
   letter-spacing: 6px;
@@ -226,96 +289,493 @@ header {
 
 
 /* =========================
-   COOLDOWN INDICATOR
+   FLOAT LAYERS
 ========================= */
 
-#cooldown-indicator {
+#float-layer,
+#bonus-layer {
+  position: fixed;
+
+  inset: 0;
+
+  pointer-events: none;
+
+  z-index: 30;
+}
+
+
+/* =========================
+   REWARD
+========================= */
+
+.reward-float {
+  position: fixed;
+
+  top: 95px;
+  left: 24px;
+
+  padding: 7px 12px;
+
+  border-radius: 10px;
+
+  background: rgba(15, 18, 30, .92);
+
+  border: 1px solid rgba(25, 217, 107, .45);
+
+  color: #7dffb0;
+
+  font-size: 18px;
+
+  font-weight: 900;
+
+  box-shadow:
+    0 0 18px rgba(25, 217, 107, .18);
+
+  animation:
+    rewardFloat .85s ease forwards;
+}
+
+
+/* =========================
+   BONUS
+========================= */
+
+.bonus-float {
+  position: fixed;
+
+  padding: 9px 14px;
+
+  border-radius: 12px;
+
+  background: rgba(12, 14, 25, .94);
+
+  border: 1px solid rgba(157, 66, 255, .65);
+
+  color: white;
+
+  font-size: 18px;
+
+  font-weight: 900;
+
+  box-shadow:
+    0 0 22px rgba(157, 66, 255, .30);
+
+  animation:
+    bonusFloat .85s ease forwards;
+}
+
+.bonus-float.fade-out {
+  opacity: 0;
+
+  transform: scale(.85);
+
+  transition:
+    opacity .25s ease,
+    transform .25s ease;
+}
+
+
+@keyframes rewardFloat {
+
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(.85);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  75% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-12px) scale(.95);
+  }
+}
+
+
+@keyframes bonusFloat {
+
+  0% {
+    opacity: 0;
+    transform: translateY(15px) scale(.8);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  75% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-15px) scale(.95);
+  }
+}
+
+
+/* =========================
+   BOTTOM NAV
+========================= */
+
+.bottom {
+  position: fixed;
+
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+
+  height: 72px;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  gap: 8px;
+
+  padding: 8px;
+
+  background:
+    rgba(10, 12, 22, .92);
+
+  border:
+    1px solid rgba(150, 80, 255, .25);
+
+  border-radius: 18px;
+
+  backdrop-filter: blur(12px);
+
+  box-shadow:
+    0 0 25px rgba(60, 60, 160, .15);
+
+  z-index: 40;
+}
+
+.bottom button {
+  border: 0;
+
+  border-radius: 12px;
+
+  background:
+    rgba(35, 38, 55, .75);
+
+  color: #dce4ff;
+
+  font-size: 20px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 3px;
+
+  cursor: pointer;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom button span {
+  font-size: 10px;
+
+  opacity: .75;
+}
+
+.bottom button:active {
+  transform: scale(.95);
+
+  background:
+    rgba(65, 70, 100, .8);
+}
+
+
+/* =========================
+   PANEL
+========================= */
+
+.panel {
+  position: fixed;
+
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  height: 75vh;
+
+  padding:
+    55px
+    20px
+    30px;
+
+  background:
+    rgba(9, 10, 18, .98);
+
+  border-top:
+    1px solid rgba(157, 66, 255, .5);
+
+  border-radius:
+    25px 25px 0 0;
+
+  box-shadow:
+    0 -10px 40px rgba(0, 0, 0, .5);
+
+  transform:
+    translateY(100%);
+
+  transition:
+    transform .25s ease;
+
+  z-index: 100;
+
+  overflow-y: auto;
+}
+
+.panel.open {
+  transform:
+    translateY(0);
+}
+
+.close {
   position: absolute;
 
-  top: calc(
-    50% - min(31vw, 150px) - 72px
-  );
+  top: 15px;
+  right: 18px;
+
+  width: 40px;
+  height: 40px;
+
+  border: 0;
+
+  border-radius: 50%;
+
+  background:
+    rgba(40, 42, 60, .8);
+
+  color: white;
+
+  font-size: 20px;
+}
+
+#panel-content h2 {
+  margin-top: 0;
+
+  text-align: center;
+}
+
+
+/* =========================
+   CARDS
+========================= */
+
+.card {
+  margin:
+    10px 0;
+
+  padding:
+    15px;
+
+  border-radius: 14px;
+
+  background:
+    rgba(25, 27, 42, .85);
+
+  border:
+    1px solid rgba(150, 160, 220, .12);
+}
+
+.upgrade-card h3 {
+  margin:
+    0 0 10px;
+}
+
+.upgrade-price {
+  font-size: 18px;
+
+  font-weight: 900;
+
+  margin-bottom: 8px;
+}
+
+.upgrade-level {
+  opacity: .75;
+
+  margin-bottom: 12px;
+}
+
+.upgrade-buttons {
+  display: flex;
+
+  gap: 8px;
+}
+
+.upgrade-buttons button,
+.upgrade-max {
+  flex: 1;
+
+  border: 0;
+
+  padding: 11px;
+
+  border-radius: 10px;
+
+  color: white;
+
+  font-weight: 900;
+}
+
+.upgrade-max {
+  background:
+    #44485c;
+}
+
+
+/* =========================
+   GEMS MENU
+========================= */
+
+.blue-menu {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 10px;
+
+  margin-bottom: 15px;
+}
+
+.blue-menu button {
+  border: 0;
+
+  padding: 14px;
+
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #3868ff,
+      #5940c9
+    );
+
+  color: white;
+
+  font-weight: 900;
+
+  font-size: 15px;
+}
+
+
+/* =========================
+   RATING
+========================= */
+
+.row {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  padding: 13px;
+
+  margin:
+    7px 0;
+
+  border-radius: 10px;
+
+  background:
+    rgba(25, 27, 42, .85);
+}
+
+
+/* =========================
+   TOAST
+========================= */
+
+#toast {
+  position: fixed;
 
   left: 50%;
 
-  transform: translateX(-50%);
+  bottom: 100px;
 
-  min-width: 125px;
+  transform:
+    translateX(-50%)
+    translateY(20px);
 
-  padding: 8px 15px;
+  padding:
+    10px 16px;
 
-  border-radius: 13px;
+  border-radius: 12px;
 
-  text-align: center;
+  background:
+    rgba(15, 17, 28, .95);
 
-  background: rgba(10, 12, 20, .88);
+  border:
+    1px solid rgba(140, 200, 255, .25);
 
-  backdrop-filter: blur(8px);
+  box-shadow:
+    0 0 20px rgba(60, 100, 200, .18);
 
-  z-index: 5;
+  color: white;
+
+  font-size: 14px;
+
+  font-weight: 700;
+
+  opacity: 0;
 
   pointer-events: none;
 
   transition:
-    border-color .15s ease,
-    box-shadow .15s ease;
+    opacity .2s ease,
+    transform .2s ease;
+
+  z-index: 200;
+}
+
+#toast.show {
+  opacity: 1;
+
+  transform:
+    translateX(-50%)
+    translateY(0);
 }
 
 
 /* =========================
-   COOLDOWN RED
+   MOBILE
 ========================= */
 
-#cooldown-indicator.cooldown-active {
-  border: 1px solid rgba(233, 35, 63, .75);
+@media (max-height: 650px) {
 
-  box-shadow:
-    0 0 15px rgba(233, 35, 63, .22);
-}
+  #tap-button {
+    width: min(55vw, 250px);
+    height: min(55vw, 250px);
+  }
 
+  #cooldown-indicator {
+    top: 78px;
+  }
 
-/* =========================
-   COOLDOWN GREEN
-========================= */
+  .bottom {
+    height: 64px;
+  }
 
-#cooldown-indicator.cooldown-ready {
-  border: 1px solid rgba(25, 217, 107, .8);
-
-  box-shadow:
-    0 0 18px rgba(25, 217, 107, .25);
-}
-
-
-/* =========================
-   COOLDOWN LABEL
-========================= */
-
-#cooldown-label {
-  font-size: 10px;
-
-  font-weight: 800;
-
-  letter-spacing: 2px;
-
-  opacity: .8;
-}
-
-.cooldown-active #cooldown-label {
-  color: #ff5268;
-}
-
-.cooldown-ready #cooldown-label {
-  color: #19d96b;
-}
-
-
-/* =========================
-   COOLDOWN TIME
-========================= */
-
-#cooldown-time {
-  margin-top: 2px;
-
-  font-size: 20px;
-
- 
+  .panel {
+    height: 78vh;
+  }
+  }
