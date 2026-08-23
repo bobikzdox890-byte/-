@@ -1,40 +1,50 @@
-:root{
-  --bg:#050509;
-  --blue:#8cc8ff;
-  --blue2:#3868ff;
-  --red:#e9233f;
-  --purple:#9d42ff;
-  --white:#f4f7ff;
+:root {
+  --bg: #050509;
+  --blue: #8cc8ff;
+  --blue2: #3868ff;
+  --red: #e9233f;
+  --purple: #9d42ff;
+  --green: #19d96b;
+  --white: #f4f7ff;
 }
 
-*{
-  box-sizing:border-box;
+* {
+  box-sizing: border-box;
 }
 
 html,
-body{
-  margin:0;
-  width:100%;
-  height:100%;
-  overflow:hidden;
-  background:var(--bg);
-  color:var(--white);
-  font-family:Arial,sans-serif;
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--white);
+  font-family: Arial, sans-serif;
 }
 
-body{
-  position:relative;
+body {
+  position: relative;
 }
 
-.neon{
-  position:fixed;
-  inset:8px;
-  border:1px solid rgba(170,70,255,.45);
+
+/* =========================
+   NEON FRAME
+========================= */
+
+.neon {
+  position: fixed;
+  inset: 8px;
+
+  border: 1px solid rgba(170, 70, 255, .45);
+
   box-shadow:
-    0 0 18px rgba(150,45,255,.20),
-    inset 0 0 18px rgba(60,120,255,.08);
-  border-radius:18px;
-  pointer-events:none;
+    0 0 18px rgba(150, 45, 255, .20),
+    inset 0 0 18px rgba(60, 120, 255, .08);
+
+  border-radius: 18px;
+
+  pointer-events: none;
 }
 
 
@@ -42,42 +52,50 @@ body{
    HEADER
 ========================= */
 
-header{
-  position:fixed;
-  top:20px;
-  left:24px;
-  right:24px;
-  display:flex;
-  justify-content:space-between;
-  z-index:5;
+header {
+  position: fixed;
+
+  top: 20px;
+  left: 24px;
+  right: 24px;
+
+  display: flex;
+  justify-content: space-between;
+
+  z-index: 5;
 }
 
 .balance,
-.energy{
-  padding:10px 13px;
-  border:1px solid rgba(160,200,255,.16);
-  border-radius:12px;
-  background:rgba(15,18,30,.75);
-  box-shadow:0 0 12px rgba(60,120,255,.10);
-  backdrop-filter:blur(8px);
+.energy {
+  padding: 10px 13px;
+
+  border: 1px solid rgba(160, 200, 255, .16);
+  border-radius: 12px;
+
+  background: rgba(15, 18, 30, .75);
+
+  box-shadow:
+    0 0 12px rgba(60, 120, 255, .10);
+
+  backdrop-filter: blur(8px);
 }
 
-.balance span{
-  font-size:12px;
-  color:#a6b6d8;
-  margin-right:7px;
+.balance span {
+  font-size: 12px;
+  color: #a6b6d8;
+  margin-right: 7px;
 }
 
-.balance b{
-  font-size:18px;
+.balance b {
+  font-size: 18px;
 }
 
-.energy{
-  font-size:16px;
+.energy {
+  font-size: 16px;
 }
 
-.energy b{
-  color:#8fd2ff;
+.energy b {
+  color: #8fd2ff;
 }
 
 
@@ -85,17 +103,18 @@ header{
    TAP AREA
 ========================= */
 
-#tap-area{
-  position:absolute;
-  inset:0;
+#tap-area {
+  position: absolute;
 
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  inset: 0;
 
-  touch-action:none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  z-index:1;
+  touch-action: none;
+
+  z-index: 1;
 }
 
 
@@ -103,14 +122,14 @@ header{
    TAP BUTTON
 ========================= */
 
-#tap-button{
+#tap-button {
+  width: min(62vw, 300px);
+  height: min(62vw, 300px);
 
-  width:min(62vw,300px);
-  height:min(62vw,300px);
+  padding: 0;
 
-  border-radius:50%;
-
-  border:4px solid #ff5066;
+  border-radius: 50%;
+  border: 4px solid #ff5066;
 
   background:
     radial-gradient(
@@ -121,51 +140,67 @@ header{
     );
 
   box-shadow:
-    0 0 30px rgba(255,30,65,.32),
-    0 0 80px rgba(255,20,50,.12);
+    0 0 30px rgba(255, 30, 65, .32),
+    0 0 80px rgba(255, 20, 50, .12);
+
+  z-index: 2;
+
+  touch-action: none;
+
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 
   transition:
     transform .08s ease,
-    filter .12s ease;
+    filter .08s ease,
+    border-color .12s ease,
+    box-shadow .12s ease;
 
-  z-index:2;
-
-  padding:0;
-
-  touch-action:none;
-
-  -webkit-user-select:none;
-  user-select:none;
-
-  -webkit-tap-highlight-color:transparent;
+  outline: none;
 }
 
 
-/*
-   Палец держит кнопку
-*/
+/* =========================
+   BUTTON PRESSED
+========================= */
 
-#tap-button.pressed{
-  transform:scale(.91);
+#tap-button.pressed {
+  transform: scale(.91);
 
   filter:
     brightness(.82)
     saturate(1.2);
 
   box-shadow:
-    0 0 18px rgba(255,30,65,.45),
-    0 0 50px rgba(255,20,50,.20);
+    0 0 18px rgba(255, 30, 65, .45),
+    0 0 50px rgba(255, 20, 50, .20);
 }
 
 
-/*
-   Больше не используем
-   браузерный :active как
-   основную механику.
-*/
+/* =========================
+   BUTTON COOLDOWN
+========================= */
 
-#tap-button:focus{
-  outline:none;
+#tap-button.cooldown {
+  border-color: var(--red);
+
+  box-shadow:
+    0 0 30px rgba(255, 30, 65, .45),
+    0 0 80px rgba(255, 20, 50, .18);
+}
+
+
+/* =========================
+   BUTTON READY
+========================= */
+
+#tap-button.ready {
+  border-color: var(--green);
+
+  box-shadow:
+    0 0 30px rgba(25, 217, 107, .35),
+    0 0 80px rgba(25, 217, 107, .12);
 }
 
 
@@ -173,17 +208,17 @@ header{
    TAP TEXT
 ========================= */
 
-.tap-hint{
-  position:absolute;
+.tap-hint {
+  position: absolute;
 
-  z-index:3;
+  z-index: 3;
 
-  pointer-events:none;
+  pointer-events: none;
 
-  font-size:24px;
-  font-weight:900;
+  font-size: 24px;
+  font-weight: 900;
 
-  letter-spacing:6px;
+  letter-spacing: 6px;
 
   text-shadow:
     0 0 12px #fff;
@@ -191,34 +226,35 @@ header{
 
 
 /* =========================
-   COOLDOWN
+   COOLDOWN INDICATOR
 ========================= */
 
-#cooldown-indicator{
+#cooldown-indicator {
+  position: absolute;
 
-  position:absolute;
+  top: calc(
+    50% - min(31vw, 150px) - 72px
+  );
 
-  top:calc(50% - min(31vw,150px) - 72px);
+  left: 50%;
 
-  left:50%;
+  transform: translateX(-50%);
 
-  transform:translateX(-50%);
+  min-width: 125px;
 
-  min-width:125px;
+  padding: 8px 15px;
 
-  padding:8px 15px;
+  border-radius: 13px;
 
-  border-radius:13px;
+  text-align: center;
 
-  text-align:center;
+  background: rgba(10, 12, 20, .88);
 
-  background:rgba(10,12,20,.88);
+  backdrop-filter: blur(8px);
 
-  backdrop-filter:blur(8px);
+  z-index: 5;
 
-  z-index:5;
-
-  pointer-events:none;
+  pointer-events: none;
 
   transition:
     border-color .15s ease,
@@ -226,376 +262,60 @@ header{
 }
 
 
-/* RED */
+/* =========================
+   COOLDOWN RED
+========================= */
 
-#cooldown-indicator.cooldown-active{
-
-  border:1px solid
-    rgba(233,35,63,.75);
+#cooldown-indicator.cooldown-active {
+  border: 1px solid rgba(233, 35, 63, .75);
 
   box-shadow:
-    0 0 15px
-      rgba(233,35,63,.22);
+    0 0 15px rgba(233, 35, 63, .22);
 }
 
 
-/* GREEN */
+/* =========================
+   COOLDOWN GREEN
+========================= */
 
-#cooldown-indicator.cooldown-ready{
-
-  border:1px solid
-    rgba(25,217,107,.8);
+#cooldown-indicator.cooldown-ready {
+  border: 1px solid rgba(25, 217, 107, .8);
 
   box-shadow:
-    0 0 18px
-      rgba(25,217,107,.25);
-}
-
-
-#cooldown-label{
-
-  font-size:10px;
-
-  font-weight:800;
-
-  letter-spacing:2px;
-
-  opacity:.8;
-}
-
-
-.cooldown-active #cooldown-label{
-  color:#ff5268;
-}
-
-
-.cooldown-ready #cooldown-label{
-  color:#19d96b;
-}
-
-
-#cooldown-time{
-
-  margin-top:2px;
-
-  font-size:20px;
-
-  font-weight:900;
-}
-
-
-.cooldown-active #cooldown-time{
-  color:#ff5268;
-}
-
-
-.cooldown-ready #cooldown-time{
-  color:#19d96b;
+    0 0 18px rgba(25, 217, 107, .25);
 }
 
 
 /* =========================
-   BOTTOM NAV
+   COOLDOWN LABEL
 ========================= */
 
-.bottom{
-  position:fixed;
-  bottom:18px;
-  left:18px;
-  right:18px;
+#cooldown-label {
+  font-size: 10px;
 
-  display:grid;
-  grid-template-columns:
-    repeat(4,1fr);
+  font-weight: 800;
 
-  gap:8px;
+  letter-spacing: 2px;
 
-  z-index:6;
+  opacity: .8;
 }
 
-.bottom button{
-
-  border:1px solid
-    rgba(140,190,255,.18);
-
-  background:
-    rgba(12,15,25,.92);
-
-  color:#fff;
-
-  border-radius:14px;
-
-  padding:10px 3px;
-
-  font-size:19px;
-
-  touch-action:manipulation;
+.cooldown-active #cooldown-label {
+  color: #ff5268;
 }
 
-.bottom span{
-
-  display:block;
-
-  font-size:10px;
-
-  color:#a8b4cb;
-
-  margin-top:3px;
+.cooldown-ready #cooldown-label {
+  color: #19d96b;
 }
 
 
 /* =========================
-   PANEL
+   COOLDOWN TIME
 ========================= */
 
-.panel{
+#cooldown-time {
+  margin-top: 2px;
 
-  position:fixed;
+  font-size: 20px;
 
-  top:0;
-  right:0;
-
-  width:min(88vw,420px);
-  height:100%;
-
-  background:
-    rgba(7,9,16,.97);
-
-  border-left:
-    1px solid rgba(160,70,255,.45);
-
-  box-shadow:
-    -20px 0 50px
-      rgba(90,30,180,.18);
-
-  z-index:20;
-
-  transform:
-    translateX(105%);
-
-  transition:
-    transform .25s ease;
-
-  padding:
-    60px 20px 30px;
-
-  overflow:auto;
-
-  -webkit-overflow-scrolling:touch;
-}
-
-.panel.open{
-  transform:translateX(0);
-}
-
-.close{
-
-  position:absolute;
-
-  right:18px;
-  top:18px;
-
-  border:0;
-
-  background:transparent;
-
-  color:#fff;
-
-  font-size:24px;
-}
-
-
-/* =========================
-   PANEL CONTENT
-========================= */
-
-.panel h2{
-  margin-top:0;
-}
-
-.row{
-
-  display:flex;
-
-  justify-content:space-between;
-
-  gap:10px;
-
-  align-items:center;
-
-  padding:13px 0;
-
-  border-bottom:
-    1px solid rgba(255,255,255,.07);
-}
-
-.row small{
-
-  display:block;
-
-  color:#8792aa;
-
-  margin-top:4px;
-}
-
-.row button{
-
-  background:#163bd0;
-
-  color:white;
-
-  border:0;
-
-  border-radius:9px;
-
-  padding:9px 12px;
-}
-
-
-/* =========================
-   GEMS
-========================= */
-
-.blue-menu{
-
-  display:grid;
-
-  grid-template-columns:1fr;
-
-  gap:8px;
-
-  margin-bottom:18px;
-}
-
-.blue-menu button{
-
-  background:#1239c8;
-
-  color:white;
-
-  border:1px solid #4770ff;
-
-  border-radius:10px;
-
-  padding:12px;
-
-  text-align:left;
-
-  touch-action:manipulation;
-}
-
-
-/* =========================
-   CARDS
-========================= */
-
-.card{
-
-  background:#0e1321;
-
-  border:
-    1px solid rgba(130,170,255,.12);
-
-  border-radius:14px;
-
-  padding:12px;
-
-  margin:9px 0;
-}
-
-
-/* =========================
-   TOAST
-========================= */
-
-#toast{
-
-  position:fixed;
-
-  left:50%;
-
-  bottom:100px;
-
-  transform:
-    translateX(-50%);
-
-  background:
-    rgba(20,24,35,.95);
-
-  border:
-    1px solid rgba(255,255,255,.12);
-
-  border-radius:12px;
-
-  padding:9px 13px;
-
-  opacity:0;
-
-  transition:.2s;
-
-  z-index:50;
-
-  pointer-events:none;
-}
-
-#toast.show{
-  opacity:1;
-}
-
-
-/* =========================
-   FLOAT MONEY
-========================= */
-
-.float{
-
-  position:absolute;
-
-  color:#fff;
-
-  font-size:22px;
-
-  font-weight:800;
-
-  animation:
-    float .7s ease-out forwards;
-
-  pointer-events:none;
-
-  z-index:10;
-}
-
-
-@keyframes float{
-
-  from{
-    transform:translateY(0);
-    opacity:1;
-  }
-
-  to{
-    transform:translateY(-80px);
-    opacity:0;
-  }
-         }
-
-#tap-button{
-  touch-action:none;
-  user-select:none;
-  -webkit-user-select:none;
-}
-
-#tap-button.pressed{
-  transform:scale(.94);
-}
-
-#tap-button.cooldown{
-  border-color:#e9233f;
-  box-shadow:
-    0 0 30px rgba(255,30,65,.45),
-    0 0 80px rgba(255,20,50,.18);
-}
-
-#tap-button.ready{
-  border-color:#19d96b;
-}
+ 
