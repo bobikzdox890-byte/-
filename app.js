@@ -113,10 +113,7 @@ document.querySelectorAll(".bottom button").forEach(btn => {
 
 function openPanel(type) {
   panel.classList.add("open");
-  if (type === "upgrades") upgradesPanel();
-  if (type === "gems") gemsPanel();
-  if (type === "rating") ratingPanel();
-  if (type === "profile") profilePanel();
+  $("panel-content").innerHTML = `<h2>Тест: ${type}</h2><p>Панель работает.</p>`;
 }
 
 function upgradesPanel() {
