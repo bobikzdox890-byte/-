@@ -513,45 +513,6 @@ async function buyMax(kind) {
   );
 
 
-  if (!d.ok) {
-
-    if (d.error === "money") {
-
-      toast(
-        `❌ Нужно ${d.cost} ${d.currency}`
-      );
-
-    } else if (
-      d.error === "max_level"
-    ) {
-
-      toast(
-        "🏆 Максимальный уровень"
-      );
-
-    } else {
-
-      toast(
-        "❌ Не удалось купить MAX"
-      );
-    }
-
-    return;
-  }
-
-
-  render(d.player);
-
-
-  toast(
-    `🔥 Куплено уровней: ${d.levels_bought}`
-  );
-
-
-  upgradesPanel();
-}
-
-
 async function ratingPanel() {
 
   const d =
