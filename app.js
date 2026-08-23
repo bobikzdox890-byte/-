@@ -53,7 +53,13 @@ function render(p) {
 
 async function load() {
   const d = await api(`/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`);
-  if (d.ok) render(d.player);
+  console.log("STATE:", d);
+
+  if (d.ok) {
+    render(d.player);
+  } else {
+    toast("❌ API не отвечает");
+  }
 }
 load();
 setInterval(load, 1000);
