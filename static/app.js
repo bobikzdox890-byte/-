@@ -22,14 +22,24 @@ const user = tg?.initDataUnsafe?.user || {
 };
 
 const uid = String(user.id);
-const username = user.username || user.first_name || "Player";
+const username =
+  user.username ||
+  user.first_name ||
+  "Player";
 
 
-const $ = id => document.getElementById(id);
+const $ = id =>
+  document.getElementById(id);
 
+
+/* =========================
+   TOAST
+========================= */
 
 const toast = msg => {
+
   $("toast").textContent = msg;
+
   $("toast").classList.add("show");
 
   setTimeout(() => {
@@ -37,91 +47,315 @@ const toast = msg => {
   }, 1400);
 };
 
+
+/* =========================
+   STATE
+========================= */
+
+let state = null;
+
+let cooldownTimer = null;
+let energyTimer = null;
+
+let cooldownUntil = 0;
+
+let energyLastUpdate = 0;
+
+let tapBusy = false;
+
+
+/* =========================
+   COOLDOWN UI
+========================= */
+
+function createCooldownUI() {
+
+  if ($("cooldown-indicator")) {
+    return;
+  }
+
+  const indicator =
+    document.createElement("div");
+
+  indicator.id =
+    "cooldown-indicator";
+
+  indicator.innerHTML = `
+    <div id="cooldown-label">
+      ГОТОВО
+    </div>
+
+    <div id="cooldown-time">
+      0.0
+    </div>
+  `;
+
+  $("tap-area").appendChild(indicator);
+}
+
+
+function updateCooldownUI(remaining) {
+
+  const indicator =
+    $("cooldown-indicator");
+
+  const label =
+    $("cooldown-label");
+
+  const time =
+    $("cooldown-time");
+
+  if (!indicator || !label || !time) {
+    return;
+  }
+
+
+  if (remaining <= 0) {
+
+    indicator.classList.remove(
+      "cooldown-active"
+    );
+
+    indicator.classList.add(
+      "cooldown-ready"
+    );
+
+    label.textContent =
+      "ГОТОВО";
+
+    time.textContent =
+      "TAP";
+
+    return;
+  }
+
+
+  indicator.classList.remove(
+    "cooldown-ready"
+  );
+
+  indicator.classList.add(
+    "cooldown-active"
+  );
+
+  label.textContent =
+    "КУЛДАУН";
+
+  time.textContent =
+    remaining.toFixed(1) + "с";
+}
+
+
 function startCooldown(seconds) {
 
   clearInterval(cooldownTimer);
 
-  let remaining = Number(seconds);
+  const duration =
+    Math.max(
+      0,
+      Number(seconds) || 0
+    );
 
-  const button = $("tap-button");
+  cooldownUntil =
+    performance.now() +
+    duration * 1000;
 
-  button.classList.add("cooldown");
+  updateCooldownUI(duration);
 
-  const update = () => {
-
-    if (remaining <= 0) {
-
-      clearInterval(cooldownTimer);
-
-      button.classList.remove("cooldown");
-
-      button.textContent = "TAP";
-
-      return;
-    }
-
-    button.textContent =
-      `⏳ ${remaining.toFixed(1)}`;
-
-    remaining -= 0.1;
-  };
-
-  update();
 
   cooldownTimer =
-    setInterval(update, 100);
+    setInterval(() => {
+
+      const remaining =
+        Math.max(
+          0,
+          (cooldownUntil -
+            performance.now()) / 1000
+        );
+
+      updateCooldownUI(
+        remaining
+      );
+
+
+      if (remaining <= 0) {
+
+        clearInterval(
+          cooldownTimer
+        );
+
+        cooldownTimer =
+          null;
+
+        cooldownUntil = 0;
+
+        tapBusy = false;
+      }
+
+    }, 50);
 }
 
 
-let state = null;
-let cooldownTimer = null;
+/* =========================
+   ENERGY UI
+========================= */
 
-const API = "https://83s8tvz3me.onrender.com";
+function startEnergyTimer() {
+
+  clearInterval(
+    energyTimer
+  );
+
+
+  energyLastUpdate =
+    performance.now();
+
+
+  energyTimer =
+    setInterval(() => {
+
+      if (!state) {
+        return;
+      }
+
+
+      const now =
+        performance.now();
+
+
+      const elapsed =
+        (now -
+          energyLastUpdate) / 1000;
+
+
+      if (
+        elapsed <= 0 ||
+        state.energy >=
+        state.max_energy
+      ) {
+
+        energyLastUpdate =
+          now;
+
+        return;
+      }
+
+
+      const regen =
+        Number(
+          state.regen_cd
+        ) || 2;
+
+
+      const gained =
+        elapsed / regen;
+
+
+      state.energy =
+        Math.min(
+          Number(
+            state.max_energy
+          ),
+          Number(
+            state.energy
+          ) + gained
+        );
+
+
+      energyLastUpdate =
+        now;
+
+
+      $("energy").textContent =
+        Math.floor(
+          state.energy
+        );
+
+    }, 100);
+
+}
 
 
 /* =========================
    API
 ========================= */
 
-async function api(url, options = {}) {
-  try {
-    const r = await fetch(API + url, {
-      method: options.method || "GET",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: options.body
-    });
-
-    if (!r.ok) {
-  const text = await r.text();
-
-  console.error(
-    "API error:",
-    r.status,
-    text
-  );
+async function api(
+  url,
+  options = {}
+) {
 
   try {
-    return JSON.parse(text);
-  } catch {
-    return {
-      ok: false,
-      error: "api_error",
-      status: r.status
-    };
-  }
+
+    const r =
+      await fetch(
+        API + url,
+        {
+          method:
+            options.method || "GET",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            options.body
+        }
+      );
+
+
+    const text =
+      await r.text();
+
+
+    let data;
+
+
+    try {
+
+      data =
+        JSON.parse(text);
+
+    } catch {
+
+      console.error(
+        "Invalid JSON:",
+        text
+      );
+
+      return {
+        ok: false,
+        error: "invalid_response"
+      };
     }
 
-    return await r.json();
+
+    if (!r.ok) {
+
+      console.error(
+        "API error:",
+        r.status,
+        data
+      );
+
+      return data;
+    }
+
+
+    return data;
+
 
   } catch (err) {
+
     console.error(
       "API connection error:",
       err
     );
 
-    toast("❌ Нет связи с сервером");
+    toast(
+      "❌ Нет связи с сервером"
+    );
 
     return {
       ok: false,
@@ -136,148 +370,415 @@ async function api(url, options = {}) {
 ========================= */
 
 function render(p) {
+
   state = p;
 
+
   $("dollars").textContent =
-    Number(p.dollars).toFixed(2);
+    Number(
+      p.dollars
+    ).toFixed(2);
+
 
   $("energy").textContent =
-    Math.floor(p.energy);
+    Math.floor(
+      p.energy
+    );
+
 
   $("max-energy").textContent =
-    Math.floor(p.max_energy);
+    Math.floor(
+      p.max_energy
+    );
+
+
+  energyLastUpdate =
+    performance.now();
 }
 
 
 /* =========================
-   LOAD
+   INITIAL LOAD
 ========================= */
 
 async function load() {
-  const d = await api(
-    `/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`
+
+  const d =
+    await api(
+      `/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`
+    );
+
+
+  console.log(
+    "STATE:",
+    d
   );
 
-  console.log("STATE:", d);
 
-  if (d.ok) {
-    render(d.player);
-  } else {
-    toast("❌ API не отвечает");
+  if (!d.ok) {
+
+    toast(
+      "❌ API не отвечает"
+    );
+
+    return;
   }
+
+
+  render(
+    d.player
+  );
+
+
+  startEnergyTimer();
+
+
+  /*
+     Сервер отдаёт актуальный
+     tap_cd, поэтому после
+     открытия приложения
+     просто показываем READY.
+  */
+
+  updateCooldownUI(0);
 }
 
 
-load();
+/* =========================
+   API URL
+========================= */
 
-setInterval(load, 1000);
+const API =
+  "https://83s8tvz3me.onrender.com";
 
 
 /* =========================
-   TAP
+   TAP BUTTON
 ========================= */
 
-$("tap-area").addEventListener(
-  "click",
-  async (e) => {
+const tapButton =
+  $("tap-button");
 
-    console.log("TAP CLICKED");
+
+let pointerDown = false;
+
+
+/*
+   Палец нажал
+*/
+
+tapButton.addEventListener(
+  "pointerdown",
+  e => {
+
+    e.preventDefault();
+
 
     if (
-      e.target.closest(".bottom") ||
-      e.target.closest(".panel")
+      cooldownUntil > 0 ||
+      tapBusy
     ) {
       return;
     }
 
-    const d = await api(
+
+    pointerDown = true;
+
+
+    tapButton.classList.add(
+      "pressed"
+    );
+
+
+    try {
+
+      tapButton.setPointerCapture(
+        e.pointerId
+      );
+
+    } catch {}
+  }
+);
+
+
+/*
+   Палец отпустил
+*/
+
+tapButton.addEventListener(
+  "pointerup",
+  async e => {
+
+    e.preventDefault();
+
+
+    tapButton.classList.remove(
+      "pressed"
+    );
+
+
+    if (!pointerDown) {
+      return;
+    }
+
+
+    pointerDown = false;
+
+
+    if (
+      cooldownUntil > 0 ||
+      tapBusy
+    ) {
+      return;
+    }
+
+
+    await doTap(e);
+  }
+);
+
+
+/*
+   Палец ушёл с экрана
+*/
+
+tapButton.addEventListener(
+  "pointercancel",
+  e => {
+
+    pointerDown = false;
+
+    tapButton.classList.remove(
+      "pressed"
+    );
+  }
+);
+
+
+/*
+   Если палец ушёл с кнопки
+*/
+
+tapButton.addEventListener(
+  "lostpointercapture",
+  () => {
+
+    pointerDown = false;
+
+    tapButton.classList.remove(
+      "pressed"
+    );
+  }
+);
+
+
+/* =========================
+   TAP REQUEST
+========================= */
+
+async function doTap(e) {
+
+  if (
+    tapBusy ||
+    cooldownUntil > 0
+  ) {
+    return;
+  }
+
+
+  tapBusy = true;
+
+
+  const d =
+    await api(
       "/api/tap",
       {
         method: "POST",
 
-        body: JSON.stringify({
-          user_id: uid,
-          username: username
-        })
+        body:
+          JSON.stringify({
+            user_id: uid,
+            username: username
+          })
       }
     );
 
 
-    if (!d.ok) {
+  /*
+     Сервер сказал:
+     ещё кулдаун.
+  */
 
-      if (d.error === "cooldown") {
-  startCooldown(d.remaining);
-      }
+  if (
+    !d.ok
+  ) {
 
-      if (d.error === "energy") {
-        toast("⚡ Нет энергии");
-      }
+    tapBusy = false;
+
+
+    if (
+      d.error === "cooldown"
+    ) {
+
+      startCooldown(
+        d.remaining
+      );
 
       return;
     }
 
 
-    render(d.player);
+    if (
+      d.error === "energy"
+    ) {
 
+      toast(
+        "⚡ Нет энергии"
+      );
 
-    const f = document.createElement("div");
-
-    f.className = "float";
-
-    f.textContent =
-      `+${Number(d.reward).toFixed(2)}`;
-
-    f.style.left =
-      `${e.clientX - 20}px`;
-
-    f.style.top =
-      `${e.clientY - 20}px`;
-
-
-    $("float-layer").appendChild(f);
-
-
-    setTimeout(() => {
-      f.remove();
-    }, 750);
-
-
-    if (d.gem_drop) {
-      toast("💎 +1 G3MS");
-
-    } else if (d.x5) {
-      toast("🔥 X5!");
-
-    } else if (d.doubled) {
-      toast("⚡ DOUBLE!");
+      return;
     }
+
+
+    toast(
+      "❌ Ошибка отправки"
+    );
+
+    return;
   }
-);
+
+
+  /*
+     Сервер подтвердил тап.
+  */
+
+  render(
+    d.player
+  );
+
+
+  /*
+     Сразу запускаем
+     следующий кулдаун.
+  */
+
+  startCooldown(
+    Number(
+      d.player.tap_cd
+    )
+  );
+
+
+  /*
+     Анимация денег.
+  */
+
+  const f =
+    document.createElement(
+      "div"
+    );
+
+  f.className =
+    "float";
+
+
+  f.textContent =
+    `+${Number(
+      d.reward
+    ).toFixed(2)}`;
+
+
+  const rect =
+    tapButton.getBoundingClientRect();
+
+
+  f.style.left =
+    `${
+      rect.left +
+      rect.width / 2 -
+      20
+    }px`;
+
+
+  f.style.top =
+    `${
+      rect.top +
+      rect.height / 2 -
+      20
+    }px`;
+
+
+  $("float-layer")
+    .appendChild(f);
+
+
+  setTimeout(() => {
+    f.remove();
+  }, 750);
+
+
+  /*
+     Бонусы.
+  */
+
+  if (
+    d.gem_drop
+  ) {
+
+    toast(
+      "💎 +1 G3MS"
+    );
+
+  } else if (
+    d.x5
+  ) {
+
+    toast(
+      "🔥 X5!"
+    );
+
+  } else if (
+    d.doubled
+  ) {
+
+    toast(
+      "⚡ DOUBLE!"
+    );
+  }
+
+
+  tapBusy = false;
+}
 
 
 /* =========================
    PANELS
 ========================= */
 
-const panel = $("panel");
-
-console.log("APP JS WORKS");
-console.log("PANEL:", panel);
-console.log("TAP AREA:", $("tap-area"));
-console.log("BOTTOM BUTTONS:", document.querySelectorAll(".bottom button"));
+const panel =
+  $("panel");
 
 
-$("close-panel").onclick = () => {
-  panel.classList.remove("open");
-};
+$("close-panel").onclick =
+  () => {
+
+    panel.classList.remove(
+      "open"
+    );
+  };
 
 
 document
-  .querySelectorAll(".bottom button")
+  .querySelectorAll(
+    ".bottom button"
+  )
   .forEach(btn => {
 
     btn.onclick = () => {
-      openPanel(btn.dataset.panel);
+
+      openPanel(
+        btn.dataset.panel
+      );
     };
 
   });
@@ -285,36 +786,54 @@ document
 
 function openPanel(type) {
 
-  panel.classList.add("open");
+  panel.classList.add(
+    "open"
+  );
 
 
-  if (type === "upgrades") {
+  if (
+    type === "upgrades"
+  ) {
+
     upgradesPanel();
   }
 
-  if (type === "gems") {
+
+  if (
+    type === "gems"
+  ) {
+
     gemsPanel();
   }
 
-  if (type === "rating") {
+
+  if (
+    type === "rating"
+  ) {
+
     ratingPanel();
   }
 
-  if (type === "profile") {
+
+  if (
+    type === "profile"
+  ) {
+
     profilePanel();
   }
 }
 
 
 /* =========================
-   UPGRADES PANEL
+   UPGRADES
 ========================= */
 
 async function upgradesPanel() {
 
-  const d = await api(
-    `/api/upgrades?user_id=${encodeURIComponent(uid)}`
-  );
+  const d =
+    await api(
+      `/api/upgrades?user_id=${encodeURIComponent(uid)}`
+    );
 
 
   if (!d.ok) {
@@ -326,14 +845,23 @@ async function upgradesPanel() {
   }
 
 
-  const u = d.upgrades;
+  const u =
+    d.upgrades;
 
 
   const names = {
-    tap_cd: "⏱ Кулдаун тапа",
-    income: "🪙 Доход",
-    energy: "⚡ Максимум энергии",
-    regen: "♻️ Регенерация"
+
+    tap_cd:
+      "⏱ Кулдаун тапа",
+
+    income:
+      "🪙 Доход",
+
+    energy:
+      "⚡ Максимум энергии",
+
+    regen:
+      "♻️ Регенерация"
   };
 
 
@@ -350,7 +878,8 @@ async function upgradesPanel() {
     ]
   ) {
 
-    const x = u[kind];
+    const x =
+      u[kind];
 
 
     const currency =
@@ -391,7 +920,6 @@ async function upgradesPanel() {
 
         </div>
 
-
         <div class="upgrade-level">
 
           Уровень:
@@ -404,7 +932,6 @@ async function upgradesPanel() {
           }
 
         </div>
-
 
         ${
           x.maxed
@@ -429,7 +956,6 @@ async function upgradesPanel() {
                   +1
                 </button>
 
-
                 <button
                   style="background:${color}"
                   onclick="buyMax('${kind}')"
@@ -438,20 +964,21 @@ async function upgradesPanel() {
                 </button>
 
               </div>
-
             `
         }
 
       </div>
-
     `;
   }
-$("panel-content").innerHTML = html;
+
+
+  $("panel-content")
+    .innerHTML = html;
 }
 
 
 /* =========================
-   GEMS PANEL
+   GEMS
 ========================= */
 
 function gemsPanel() {
@@ -508,28 +1035,34 @@ function gemsPanel() {
 
 async function buy(kind) {
 
-  const d = await api(
-    "/api/upgrade",
-    {
-      method: "POST",
+  const d =
+    await api(
+      "/api/upgrade",
+      {
+        method: "POST",
 
-      body: JSON.stringify({
-        user_id: uid,
-        kind: kind
-      })
-    }
-  );
+        body:
+          JSON.stringify({
+            user_id: uid,
+            kind: kind
+          })
+      }
+    );
 
 
   if (!d.ok) {
 
-    if (d.error === "money") {
+    if (
+      d.error === "money"
+    ) {
 
       toast(
         `❌ Нужно ${d.cost} ${d.currency}`
       );
 
-    } else if (d.error === "max_level") {
+    } else if (
+      d.error === "max_level"
+    ) {
 
       toast(
         "🏆 Максимальный уровень"
@@ -546,9 +1079,14 @@ async function buy(kind) {
   }
 
 
-  render(d.player);
+  render(
+    d.player
+  );
 
-  toast("✅ Уровень повышен");
+
+  toast(
+    "✅ Уровень повышен"
+  );
 
 
   if (
@@ -572,32 +1110,34 @@ async function buy(kind) {
 
 async function buyMax(kind) {
 
-  console.log("BUY MAX:", kind);
+  const d =
+    await api(
+      "/api/upgrade_max",
+      {
+        method: "POST",
 
-  const d = await api(
-    "/api/upgrade_max",
-    {
-      method: "POST",
-
-      body: JSON.stringify({
-        user_id: uid,
-        kind: kind
-      })
-    }
-  );
-
-  console.log("BUY MAX RESPONSE:", d);
+        body:
+          JSON.stringify({
+            user_id: uid,
+            kind: kind
+          })
+      }
+    );
 
 
   if (!d.ok) {
 
-    if (d.error === "money") {
+    if (
+      d.error === "money"
+    ) {
 
       toast(
         `❌ Нужно ${d.cost} ${d.currency}`
       );
 
-    } else if (d.error === "max_level") {
+    } else if (
+      d.error === "max_level"
+    ) {
 
       toast(
         "🏆 Максимальный уровень"
@@ -614,11 +1154,15 @@ async function buyMax(kind) {
   }
 
 
-  render(d.player);
+  render(
+    d.player
+  );
+
 
   toast(
     `🔥 Куплено уровней: ${d.levels_bought}`
   );
+
 
   upgradesPanel();
 }
@@ -630,39 +1174,44 @@ async function buyMax(kind) {
 
 async function ratingPanel() {
 
-  const d = await api(
-    "/api/leaderboard"
-  );
+  const d =
+    await api(
+      "/api/leaderboard"
+    );
+
 
   let html =
     "<h2>🏆 Рейтинг</h2>";
 
 
-  (d.items || []).forEach(
-    (x, i) => {
+  (d.items || [])
+    .forEach(
+      (x, i) => {
 
-      html += `
+        html += `
 
-        <div class="row">
+          <div class="row">
 
-          <div>
-            ${i + 1}.
-            ${x.username}
+            <div>
+              ${i + 1}.
+              ${x.username}
+            </div>
+
+            <b>
+              ${Number(
+                x.dollars
+              ).toFixed(0)}
+              8OLLAR
+            </b>
+
           </div>
-
-          <b>
-            ${Number(x.dollars).toFixed(0)}
-            8OLLAR
-          </b>
-
-        </div>
-
-      `;
-    }
-  );
+        `;
+      }
+    );
 
 
-  $("panel-content").innerHTML = html;
+  $("panel-content")
+    .innerHTML = html;
 }
 
 
@@ -672,9 +1221,10 @@ async function ratingPanel() {
 
 async function profilePanel() {
 
-  const d = await api(
-    `/api/referrals?user_id=${encodeURIComponent(uid)}`
-  );
+  const d =
+    await api(
+      `/api/referrals?user_id=${encodeURIComponent(uid)}`
+    );
 
 
   $("panel-content").innerHTML = `
@@ -720,3 +1270,12 @@ async function profilePanel() {
 
   `;
 }
+
+
+/* =========================
+   START
+========================= */
+
+createCooldownUI();
+
+load();
