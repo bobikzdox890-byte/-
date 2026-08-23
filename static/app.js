@@ -59,16 +59,23 @@ async function api(url, options = {}) {
     });
 
     if (!r.ok) {
-      console.error(
-        "API error:",
-        r.status,
-        await r.text()
-      );
+  const text = await r.text();
 
-      return {
-        ok: false,
-        error: "api_error"
-      };
+  console.error(
+    "API error:",
+    r.status,
+    text
+  );
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      ok: false,
+      error: "api_error",
+      status: r.status
+    };
+  }
     }
 
     return await r.json();
