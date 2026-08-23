@@ -578,3 +578,24 @@ header{
     opacity:0;
   }
          }
+
+#tap-button{
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+#tap-button.pressed{
+  transform:scale(.94);
+}
+
+#tap-button.cooldown{
+  border-color:#e9233f;
+  box-shadow:
+    0 0 30px rgba(255,30,65,.45),
+    0 0 80px rgba(255,20,50,.18);
+}
+
+#tap-button.ready{
+  border-color:#19d96b;
+}
