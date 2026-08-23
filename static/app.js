@@ -33,10 +33,11 @@ if (tg) {
 }
 
 
-const user = tg?.initDataUnsafe?.user || {
-  id: "local-demo",
-  first_name: "Player"
-};
+const user =
+  tg?.initDataUnsafe?.user || {
+    id: "local-demo",
+    first_name: "Player"
+  };
 
 
 const uid = String(user.id);
@@ -61,11 +62,10 @@ function toast(message) {
 
   const element = $("toast");
 
-  if (!element) {
-    return;
-  }
+  if (!element) return;
 
   element.textContent = message;
+
   element.classList.add("show");
 
   clearTimeout(toastTimer);
@@ -89,8 +89,6 @@ let cooldownEnd = 0;
 
 let tapBusy = false;
 let fingerDown = false;
-
-let bonusTimer = null;
 
 
 /* =========================
@@ -154,6 +152,18 @@ async function api(url, options = {}) {
     );
 
 
+    if (!response.ok) {
+
+      console.error(
+        "API error:",
+        response.status,
+        data
+      );
+
+      return data;
+    }
+
+
     return data;
 
   } catch (error) {
@@ -183,23 +193,14 @@ function render(player) {
 
   state = player;
 
-
   $("dollars").textContent =
-    Number(
-      player.dollars
-    ).toFixed(2);
-
+    Number(player.dollars).toFixed(2);
 
   $("energy").textContent =
-    Math.floor(
-      player.energy
-    );
-
+    Math.floor(player.energy);
 
   $("max-energy").textContent =
-    Math.floor(
-      player.max_energy
-    );
+    Math.floor(player.max_energy);
 }
 
 
@@ -209,16 +210,7 @@ function render(player) {
 
 function startCooldown(seconds) {
 
-  clearInterval(
-    cooldownTimer
-  );
-
-
-  const indicator =
-    $("cooldown-indicator");
-
-  const time =
-    $("cooldown-time");
+  clearInterval(cooldownTimer);
 
   const button =
     $("tap-button");
@@ -234,27 +226,34 @@ function startCooldown(seconds) {
   ) {
 
     stopCooldown();
-
     return;
   }
 
 
+  /*
+    Защита фронта.
+
+    Нормальный серверный кулдаун
+    не может быть больше 1 секунды.
+  */
+
+  const safeCooldown =
+    Math.min(
+      1,
+      Math.max(
+        0,
+        value
+      )
+    );
+
+
   cooldownEnd =
     Date.now() +
-    value * 1000;
+    safeCooldown * 1000;
 
 
   button.classList.add(
     "cooldown"
-  );
-
-
-  indicator.classList.remove(
-    "cooldown-ready"
-  );
-
-  indicator.classList.add(
-    "cooldown-active"
   );
 
 
@@ -275,8 +274,8 @@ function startCooldown(seconds) {
     }
 
 
-    time.textContent =
-      remaining.toFixed(1) + "s";
+    button.textContent =
+      `⏳ ${remaining.toFixed(1)}`;
   }
 
 
@@ -286,7 +285,7 @@ function startCooldown(seconds) {
   cooldownTimer =
     setInterval(
       updateCooldown,
-      50
+      30
     );
 }
 
@@ -302,12 +301,6 @@ function stopCooldown() {
   cooldownEnd = 0;
 
 
-  const indicator =
-    $("cooldown-indicator");
-
-  const time =
-    $("cooldown-time");
-
   const button =
     $("tap-button");
 
@@ -317,170 +310,8 @@ function stopCooldown() {
   );
 
 
-  button.classList.add(
-    "ready"
-  );
-
-
-  indicator.classList.remove(
-    "cooldown-active"
-  );
-
-  indicator.classList.add(
-    "cooldown-ready"
-  );
-
-
-  time.textContent =
-    "READY";
-}
-
-
-/* =========================
-   REWARD
-========================= */
-
-function showReward(amount) {
-
-  const reward =
-    document.createElement("div");
-
-
-  reward.className =
-    "reward-float";
-
-
-  reward.textContent =
-    `+${Number(amount).toFixed(2)}`;
-
-
-  $("float-layer")
-    .appendChild(reward);
-
-
-  setTimeout(() => {
-
-    reward.remove();
-
-  }, 850);
-}
-
-
-/* =========================
-   BONUS
-========================= */
-
-function showBonus(type) {
-
-  clearTimeout(
-    bonusTimer
-  );
-
-
-  const layer =
-    $("bonus-layer");
-
-
-  layer.innerHTML = "";
-
-
-  const bonus =
-    document.createElement("div");
-
-
-  bonus.className =
-    "bonus-float";
-
-
-  if (type === "gem") {
-
-    bonus.textContent =
-      "💎 +1 G3MS";
-
-  } else if (type === "x5") {
-
-    bonus.textContent =
-      "🔥 X5!";
-
-  } else if (type === "double") {
-
-    bonus.textContent =
-      "⚡ DOUBLE!";
-
-  } else {
-
-    return;
-  }
-
-
-  /*
-     Случайная позиция,
-     но не у самого края.
-  */
-
-  const maxX =
-    Math.max(
-      20,
-      window.innerWidth - 180
-    );
-
-
-  const maxY =
-    Math.max(
-      120,
-      window.innerHeight - 180
-    );
-
-
-  const x =
-    20 +
-    Math.random() *
-    Math.max(
-      20,
-      maxX - 20
-    );
-
-
-  const y =
-    100 +
-    Math.random() *
-    Math.max(
-      20,
-      maxY - 100
-    );
-
-
-  bonus.style.left =
-    `${x}px`;
-
-
-  bonus.style.top =
-    `${y}px`;
-
-
-  layer.appendChild(
-    bonus
-  );
-
-
-  /*
-     Бонус исчезает сам.
-  */
-
-  bonusTimer =
-    setTimeout(() => {
-
-      bonus.classList.add(
-        "fade-out"
-      );
-
-      setTimeout(() => {
-
-        bonus.remove();
-
-      }, 250);
-
-    }, 850);
+  button.textContent =
+    "TAP";
 }
 
 
@@ -496,12 +327,6 @@ async function load() {
     );
 
 
-  console.log(
-    "INITIAL STATE:",
-    data
-  );
-
-
   if (!data.ok) {
 
     toast(
@@ -515,32 +340,6 @@ async function load() {
   render(
     data.player
   );
-
-
-  /*
-     Восстанавливаем серверный
-     cooldown после загрузки страницы.
-  */
-
-  const remaining =
-    Number(
-      data.player.cooldown_remaining
-    );
-
-
-  if (
-    Number.isFinite(remaining) &&
-    remaining > 0
-  ) {
-
-    startCooldown(
-      remaining
-    );
-
-  } else {
-
-    stopCooldown();
-  }
 }
 
 
@@ -567,8 +366,13 @@ tapButton.addEventListener(
     }
 
 
-    fingerDown = true;
+    /*
+      ВАЖНО:
+      визуальный отклик происходит
+      ДО любого запроса к серверу.
+    */
 
+    fingerDown = true;
 
     tapButton.classList.add(
       "pressed"
@@ -576,24 +380,8 @@ tapButton.addEventListener(
 
 
     /*
-       Не отправляем новый запрос,
-       если клиент уже знает
-       что cooldown идёт.
+      Не ждём сервер для анимации.
     */
-
-    if (
-      cooldownEnd > Date.now()
-    ) {
-
-      fingerDown = false;
-
-      tapButton.classList.remove(
-        "pressed"
-      );
-
-      return;
-    }
-
 
     if (tapBusy) {
       return;
@@ -619,14 +407,8 @@ tapButton.addEventListener(
         );
 
 
-      console.log(
-        "TAP RESPONSE:",
-        data
-      );
-
-
       /* =====================
-         COOLDOWN ERROR
+         COOLDOWN
       ===================== */
 
       if (
@@ -635,13 +417,31 @@ tapButton.addEventListener(
       ) {
 
         const remaining =
-          Number(
-            data.remaining
+          Number(data.remaining);
+
+
+        /*
+          Защита от невозможного
+          серверного значения.
+        */
+
+        const safeRemaining =
+          Math.min(
+            1,
+            Math.max(
+              0,
+              remaining
+            )
           );
 
 
         startCooldown(
-          remaining
+          safeRemaining
+        );
+
+
+        toast(
+          `⏳ ${safeRemaining.toFixed(1)}с`
         );
 
 
@@ -650,7 +450,7 @@ tapButton.addEventListener(
 
 
       /* =====================
-         ENERGY ERROR
+         ENERGY
       ===================== */
 
       if (
@@ -690,51 +490,166 @@ tapButton.addEventListener(
 
 
       const cooldown =
-        Number(
-          data.tap_cd
-        );
+        Number(data.tap_cd);
 
 
       startCooldown(
-        cooldown
+        Math.min(
+          1,
+          Math.max(
+            0,
+            cooldown
+          )
+        )
       );
 
 
       /* =====================
-         REWARD
+         FLOAT REWARD
       ===================== */
 
-      showReward(
-        data.reward
-      );
+      const float =
+        document.createElement(
+          "div"
+        );
+
+
+      float.className =
+        "float";
+
+
+      float.textContent =
+        `+${Number(
+          data.reward
+        ).toFixed(2)}`;
+
+
+      /*
+        Случайная позиция
+        вокруг точки нажатия.
+      */
+
+      const randomX =
+        event.clientX
+        + (Math.random() * 100 - 50);
+
+      const randomY =
+        event.clientY
+        + (Math.random() * 80 - 40);
+
+
+      float.style.left =
+        `${randomX}px`;
+
+
+      float.style.top =
+        `${randomY}px`;
+
+
+      $("float-layer")
+        .appendChild(float);
+
+
+      setTimeout(() => {
+
+        float.remove();
+
+      }, 750);
 
 
       /* =====================
          BONUS
       ===================== */
 
-      /*
-         Приоритет:
-         G3MS > X5 > DOUBLE
-      */
+      let bonusText = null;
+
 
       if (data.gem_drop) {
 
-        showBonus(
-          "gem"
-        );
+        bonusText =
+          "💎 +1 G3MS";
 
       } else if (data.x5) {
 
-        showBonus(
-          "x5"
-        );
+        bonusText =
+          "🔥 X5!";
 
       } else if (data.doubled) {
 
-        showBonus(
-          "double"
+        bonusText =
+          "⚡ DOUBLE!";
+      }
+
+
+      /*
+        Старый бонус всегда удаляем.
+      */
+
+      const oldBonus =
+        document.querySelector(
+          ".bonus-float"
         );
+
+
+      if (oldBonus) {
+        oldBonus.remove();
+      }
+
+
+      /*
+        Создаём бонус только если
+        он реально выпал.
+      */
+
+      if (bonusText) {
+
+        const bonus =
+          document.createElement(
+            "div"
+          );
+
+
+        bonus.className =
+          "bonus-float";
+
+
+        bonus.textContent =
+          bonusText;
+
+
+        const randomBonusX =
+          20 +
+          Math.random()
+          * (
+            window.innerWidth - 120
+          );
+
+
+        const randomBonusY =
+          80 +
+          Math.random()
+          * (
+            window.innerHeight - 220
+          );
+
+
+        bonus.style.left =
+          `${randomBonusX}px`;
+
+
+        bonus.style.top =
+          `${randomBonusY}px`;
+
+
+        $("float-layer")
+          .appendChild(bonus);
+
+
+        setTimeout(() => {
+
+          bonus.remove();
+
+        }, 1400);
       }
 
 
@@ -742,6 +657,9 @@ tapButton.addEventListener(
 
       tapBusy = false;
     }
+  },
+  {
+    passive: false
   }
 );
 
@@ -768,19 +686,28 @@ function releaseTap(event) {
 
 tapButton.addEventListener(
   "pointerup",
-  releaseTap
+  releaseTap,
+  {
+    passive: false
+  }
 );
 
 
 tapButton.addEventListener(
   "pointercancel",
-  releaseTap
+  releaseTap,
+  {
+    passive: false
+  }
 );
 
 
 tapButton.addEventListener(
   "pointerleave",
-  releaseTap
+  releaseTap,
+  {
+    passive: false
+  }
 );
 
 
@@ -796,11 +723,6 @@ $("close-panel").onclick = () => {
 
   panel.classList.remove(
     "open"
-  );
-
-  panel.setAttribute(
-    "aria-hidden",
-    "true"
   );
 };
 
@@ -826,11 +748,6 @@ function openPanel(type) {
 
   panel.classList.add(
     "open"
-  );
-
-  panel.setAttribute(
-    "aria-hidden",
-    "false"
   );
 
 
@@ -1016,6 +933,24 @@ async function upgradesPanel() {
 
 function gemsPanel() {
 
+  const doubleCost =
+    25 * (
+      3 ** state.double_level
+    );
+
+
+  const multiplierCost =
+    50 * (
+      2 ** state.multiplier_level
+    );
+
+
+  const gemIncomeCost =
+    100 * (
+      1.8 ** state.gem_income_level
+    );
+
+
   $("panel-content").innerHTML = `
 
     <h2>💎 G3MS</h2>
@@ -1023,39 +958,71 @@ function gemsPanel() {
     <div class="blue-menu">
 
       <button onclick="buy('double')">
+
         ⚡ Дабл тап
+
+        <small>
+          💎 ${doubleCost.toFixed(0)}
+        </small>
+
       </button>
+
 
       <button onclick="buy('multiplier')">
+
         📈 Множитель 8OLLAR
+
+        <small>
+          💎 ${multiplierCost.toFixed(0)}
+        </small>
+
       </button>
 
+
       <button onclick="buy('gem_income')">
+
         💎 Доход G3MS
+
+        <small>
+          💎 ${gemIncomeCost.toFixed(0)}
+        </small>
+
       </button>
 
     </div>
 
+
     <div class="card">
+
       💎 Баланс:
       ${state.gems.toFixed(0)}
       G3MS
+
     </div>
 
+
     <div class="card">
+
       ⚡ Дабл:
       ${(state.double_chance * 100).toFixed(0)}%
       / 50%
+
     </div>
 
+
     <div class="card">
+
       📈 Множитель:
       x${state.income_multiplier.toFixed(2)}
+
     </div>
 
+
     <div class="card">
+
       💎 Шанс G3MS:
       ${(state.gem_chance * 100).toFixed(0)}%
+
     </div>
 
   `;
@@ -1270,6 +1237,7 @@ async function profilePanel() {
 
       </div>
 
+
       <div class="card">
 
         🪙 8OLLAR:
@@ -1282,12 +1250,14 @@ async function profilePanel() {
 
       </div>
 
+
       <div class="card">
 
         👥 Рефералы:
         ${data.referrals}
 
       </div>
+
 
       <div class="card">
 
@@ -1297,4 +1267,4 @@ async function profilePanel() {
       </div>
 
     `;
-    }
+                 }
