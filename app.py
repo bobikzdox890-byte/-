@@ -234,6 +234,31 @@ def upgrade_max_level(kind):
 
     return None
 
+@app.get("/api/upgrades")
+def upgrades():
+    user_id = str(request.args.get("user_id", "local-demo"))
+    row = get_player(user_id)
+
+    result = {}
+
+    for kind, cost_func in UPGRADE_COSTS.items():
+        level_col = LEVEL_COLUMNS[kind]
+        level = row[level_col]
+        max_level = upgrade_max_level(kind)
+
+        result[kind] = {
+            "level": level,
+            "cost": round(cost_func(row), 2),
+            "currency": upgrade_currency(kind),
+            "max_level": max_level,
+            "maxed": max_level is not None and level >= max_level
+        }
+
+    return jsonify({
+        "ok": True,
+        "upgrades": result
+    })
+
 @app.post("/api/upgrade")
 def upgrade():
     payload = request.get_json(silent=True) or {}
