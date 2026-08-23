@@ -267,6 +267,78 @@ def upgrade():
     if kind not in UPGRADE_COSTS:
         return jsonify({"ok": False, "error": "unknown upgrade"}), 400
 
+    @app.post("/api/upgrade_max")
+def upgrade_max():
+    payload = request.get_json(silent=True) or {}
+
+    user_id = str(payload.get("user_id", "local-demo"))
+    kind = payload.get("kind")
+
+    if kind not in UPGRADE_COSTS:
+        return jsonify({"ok": False, "error": "unknown upgrade"}), 400
+
+    row = get_player(user_id)
+
+    level_col = LEVEL_COLUMNS[kind]
+    currency = upgrade_currency(kind)
+    max_level = upgrade_max_level(kind)
+
+    levels_bought = 0
+
+    while True:
+        row = get_player(user_id)
+
+        current_level = row[level_col]
+
+        if max_level is not None and current_level >= max_level:
+            break
+
+        cost = UPGRADE_COSTS[kind](row)
+
+        if row[currency] < cost:
+            break
+
+        conn = db()
+
+        conn.execute(
+            f"""
+            UPDATE players
+            SET {currency}={currency}-?,
+                {level_col}={level_col}+1
+            WHERE user_id=?
+            """,
+            (cost, user_id)
+        )
+
+        conn.commit()
+        conn.close()
+
+        levels_bought += 1
+
+    if levels_bought == 0:
+        row = get_player(user_id)
+
+        if max_level is not None and row[level_col] >= max_level:
+            return jsonify({
+                "ok": False,
+                "error": "max_level"
+            }), 400
+
+        cost = UPGRADE_COSTS[kind](row)
+
+        return jsonify({
+            "ok": False,
+            "error": "money",
+            "cost": round(cost, 2),
+            "currency": currency
+        }), 400
+
+    return jsonify({
+        "ok": True,
+        "levels_bought": levels_bought,
+        "player": serialize(get_player(user_id))
+    })
+
     row = get_player(user_id)
     cost = UPGRADE_COSTS[kind](row)
     currency = "gems" if kind in {"double", "multiplier"} else "dollars"
