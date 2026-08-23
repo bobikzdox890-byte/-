@@ -1,20 +1,8 @@
 window.onerror = function(message, source, lineno, colno, error) {
   document.body.insertAdjacentHTML(
     "afterbegin",
-    `<div style="
-      position:fixed;
-      top:0;
-      left:0;
-      right:0;
-      z-index:99999;
-      background:red;
-      color:white;
-      padding:15px;
-      font-size:14px;
-    ">
-      JS ERROR:<br>
-      ${message}<br>
-      Line: ${lineno}
+    `<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;padding:15px;font-size:14px">
+      JS ERROR:<br>${message}<br>Line: ${lineno}
     </div>`
   );
 };
@@ -34,14 +22,10 @@ const user = tg?.initDataUnsafe?.user || {
 };
 
 const uid = String(user.id);
-const username =
-  user.username ||
-  user.first_name ||
-  "Player";
+const username = user.username || user.first_name || "Player";
 
 
-const $ = id =>
-  document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 
 const toast = msg => {
@@ -57,30 +41,24 @@ const toast = msg => {
 let state = null;
 
 
-const API =
-  "https://83s8tvz3me.onrender.com";
+const API = "https://83s8tvz3me.onrender.com";
 
+
+/* =========================
+   API
+========================= */
 
 async function api(url, options = {}) {
-
   try {
-
-    const r = await fetch(
-      API + url,
-      {
-        method: options.method || "GET",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: options.body
-      }
-    );
-
+    const r = await fetch(API + url, {
+      method: options.method || "GET",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: options.body
+    });
 
     if (!r.ok) {
-
       console.error(
         "API error:",
         r.status,
@@ -93,11 +71,9 @@ async function api(url, options = {}) {
       };
     }
 
-
     return await r.json();
 
   } catch (err) {
-
     console.error(
       "API connection error:",
       err
@@ -114,11 +90,10 @@ async function api(url, options = {}) {
 
 
 /* =========================
-   PLAYER
+   RENDER
 ========================= */
 
 function render(p) {
-
   state = p;
 
   $("dollars").textContent =
@@ -133,24 +108,19 @@ function render(p) {
 
 
 /* =========================
-   LOAD PLAYER
+   LOAD
 ========================= */
 
 async function load() {
-
   const d = await api(
     `/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`
   );
 
   console.log("STATE:", d);
 
-
   if (d.ok) {
-
     render(d.player);
-
   } else {
-
     toast("❌ API не отвечает");
   }
 }
@@ -175,7 +145,6 @@ $("tap-area").addEventListener(
     ) {
       return;
     }
-
 
     const d = await api(
       "/api/tap",
@@ -207,8 +176,7 @@ $("tap-area").addEventListener(
     render(d.player);
 
 
-    const f =
-      document.createElement("div");
+    const f = document.createElement("div");
 
     f.className = "float";
 
@@ -231,15 +199,12 @@ $("tap-area").addEventListener(
 
 
     if (d.gem_drop) {
-
       toast("💎 +1 G3MS");
 
     } else if (d.x5) {
-
       toast("🔥 X5!");
 
     } else if (d.doubled) {
-
       toast("⚡ DOUBLE!");
     }
   }
@@ -250,8 +215,7 @@ $("tap-area").addEventListener(
    PANELS
 ========================= */
 
-const panel =
-  $("panel");
+const panel = $("panel");
 
 
 $("close-panel").onclick = () => {
@@ -279,16 +243,13 @@ function openPanel(type) {
     upgradesPanel();
   }
 
-
   if (type === "gems") {
     gemsPanel();
   }
 
-
   if (type === "rating") {
     ratingPanel();
   }
-
 
   if (type === "profile") {
     profilePanel();
@@ -297,7 +258,7 @@ function openPanel(type) {
 
 
 /* =========================
-   UPGRADES
+   UPGRADES PANEL
 ========================= */
 
 async function upgradesPanel() {
@@ -317,15 +278,12 @@ async function upgradesPanel() {
 
 
   const u = d.upgrades;
-  
+
+
   const names = {
-
     tap_cd: "⏱ Кулдаун тапа",
-
     income: "🪙 Доход",
-
     energy: "⚡ Максимум энергии",
-
     regen: "♻️ Регенерация"
   };
 
@@ -439,315 +397,3 @@ async function upgradesPanel() {
 
     `;
   }
-
-
-  $("panel-content").innerHTML =
-    html;
-}
-
-
-/* =========================
-   GEMS
-========================= */
-
-function gemsPanel() {
-
-  $("panel-content").innerHTML = `
-
-    <h2>💎 G3MS</h2>
-
-
-    <div class="blue-menu">
-
-      <button onclick="buy('double')">
-        ⚡ Дабл тап
-      </button>
-
-
-      <button onclick="buy('multiplier')">
-        📈 Множитель 8OLLAR
-      </button>
-
-
-      <button onclick="buy('gem_income')">
-        💎 Доход G3MS
-      </button>
-
-    </div>
-
-
-    <div class="card">
-
-      💎 Баланс:
-      ${state.gems.toFixed(0)}
-      G3MS
-
-    </div>
-
-
-    <div class="card">
-
-      ⚡ Дабл:
-      ${(state.double_chance * 100).toFixed(0)}%
-      / 50%
-
-    </div>
-
-
-    <div class="card">
-
-      📈 Множитель:
-      x${state.income_multiplier.toFixed(2)}
-
-    </div>
-
-
-    <div class="card">
-
-      💎 Шанс G3MS:
-      ${(state.gem_chance * 100).toFixed(0)}%
-
-    </div>
-
-  `;
-}
-
-
-/* =========================
-   BUY +1
-========================= */
-
-async function buy(kind) {
-
-  const d = await api(
-    "/api/upgrade",
-    {
-      method: "POST",
-
-      body: JSON.stringify({
-        user_id: uid,
-        kind: kind
-      })
-    }
-  );
-
-
-  if (!d.ok) {
-
-    if (d.error === "money") {
-
-      toast(
-        `❌ Нужно ${d.cost} ${d.currency}`
-      );
-
-    } else if (
-      d.error === "max_level"
-    ) {
-
-      toast(
-        "🏆 Максимальный уровень"
-      );
-
-    } else {
-
-      toast(
-        "❌ Не удалось купить"
-      );
-    }
-
-    return;
-  }
-
-
-  render(d.player);
-
-  toast("✅ Уровень повышен");
-
-
-  if (
-    kind === "double" ||
-    kind === "multiplier" ||
-    kind === "gem_income"
-  ) {
-
-    gemsPanel();
-
-  } else {
-
-    upgradesPanel();
-  }
-}
-
-
-/* =========================
-   BUY MAX
-========================= */
-
-async function buyMax(kind) {
-
-  console.log(
-    "BUY MAX:",
-    kind
-  );
-
-
-  const d = await api(
-    "/api/upgrade_max",
-    {
-      method: "POST",
-
-      body: JSON.stringify({
-        user_id: uid,
-        kind: kind
-      })
-    }
-  );
-
-
-  console.log(
-    "BUY MAX RESPONSE:",
-    d
-  );
-
-
-  if (!d.ok) {
-
-    if (d.error === "money") {
-
-      toast(
-        `❌ Нужно ${d.cost} ${d.currency}`
-      );
-
-    } else if (
-      d.error === "max_level"
-    ) {
-
-      toast(
-        "🏆 Максимальный уровень"
-      );
-
-    } else {
-
-      toast(
-        "❌ Не удалось купить MAX"
-      );
-    }
-
-    return;
-  }
-
-
-  render(d.player);
-
-
-  toast(
-    `🔥 Куплено уровней: ${d.levels_bought}`
-  );
-
-
-  upgradesPanel();
-}
-
-
-/* =========================
-   RATING
-========================= */
-
-async function ratingPanel() {
-
-  const d =
-    await api("/api/leaderboard");
-
-
-  let html =
-    "<h2>🏆 Рейтинг</h2>";
-
-
-  (d.items || []).forEach(
-    (x, i) => {
-
-      html += `
-
-        <div class="row">
-
-          <div>
-            ${i + 1}.
-            ${x.username}
-          </div>
-
-          <b>
-            ${Number(x.dollars).toFixed(0)}
-            8OLLAR
-          </b>
-
-        </div>
-
-      `;
-    }
-  );
-
-
-  $("panel-content").innerHTML =
-    html;
-}
-
-
-/* =========================
-   PROFILE
-========================= */
-
-async function profilePanel() {
-
-  const d =
-    await api(
-      `/api/referrals?user_id=${encodeURIComponent(uid)}`
-    );
-
-
-  $("panel-content").innerHTML = `
-
-    <h2>👤 Профиль</h2>
-
-
-    <div class="card">
-
-      <b>${username}</b>
-
-      <br>
-
-      ID:
-      ${uid}
-
-    </div>
-
-
-    <div class="card">
-
-      🪙 8OLLAR:
-      ${state.dollars.toFixed(2)}
-
-      <br>
-
-      💎 G3MS:
-      ${state.gems.toFixed(0)}
-
-    </div>
-
-
-    <div class="card">
-
-      👥 Рефералы:
-      ${d.referrals}
-
-    </div>
-
-
-    <div class="card">
-
-      🔗 Реферальный код:
-      <b>${d.code}</b>
-
-    </div>
-
-  `;
-}
