@@ -1,44 +1,196 @@
 <!doctype html>
 <html lang="ru">
+
 <head>
+
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
+  >
+
   <title>8OLLAR Tap</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style.css') }}"
+  >
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 </head>
+
+
 <body>
+
+  <!-- =========================
+       NEON FRAME
+  ========================= -->
+
   <div class="neon"></div>
 
+
+  <!-- =========================
+       HEADER
+  ========================= -->
+
   <header>
+
     <div class="balance">
+
       <span>8OLLAR</span>
-      <b id="dollars">0</b>
+
+      <b id="dollars">
+        0
+      </b>
+
     </div>
+
+
     <div class="energy">
-      ⚡ <b id="energy">100</b>/<span id="max-energy">100</span>
+
+      ⚡
+
+      <b id="energy">
+        100
+      </b>
+
+      /
+
+      <span id="max-energy">
+        100
+      </span>
+
     </div>
+
   </header>
 
+
+  <!-- =========================
+       MAIN TAP AREA
+  ========================= -->
+
   <main id="tap-area">
-  <div id="float-layer"></div>
-  <button id="tap-button" aria-label="Tap"></button>
-  <div class="tap-hint">TAP</div>
+
+    <button
+      id="tap-button"
+      aria-label="Tap"
+      type="button"
+    ></button>
+
+
+    <div
+      class="tap-hint"
+      aria-hidden="true"
+    >
+      TAP
+    </div>
+
   </main>
 
-  <nav class="bottom">
-    <button data-panel="upgrades">⚙️<span>Апгрейды</span></button>
-    <button data-panel="gems">💎<span>G3MS</span></button>
-    <button data-panel="rating">🏆<span>Рейтинг</span></button>
-    <button data-panel="profile">👤<span>Профиль</span></button>
+
+  <!-- =========================
+       FLOATING REWARDS
+  ========================= -->
+
+  <div
+    id="float-layer"
+    aria-hidden="true"
+  ></div>
+
+
+  <!-- =========================
+       BOTTOM NAVIGATION
+  ========================= -->
+
+  <nav
+    class="bottom"
+    aria-label="Game navigation"
+  >
+
+    <button
+      type="button"
+      data-panel="upgrades"
+    >
+      ⚙️
+      <span>Апгрейды</span>
+    </button>
+
+
+    <button
+      type="button"
+      data-panel="gems"
+    >
+      💎
+      <span>G3MS</span>
+    </button>
+
+
+    <button
+      type="button"
+      data-panel="rating"
+    >
+      🏆
+      <span>Рейтинг</span>
+    </button>
+
+
+    <button
+      type="button"
+      data-panel="profile"
+    >
+      👤
+      <span>Профиль</span>
+    </button>
+
   </nav>
 
-  <aside id="panel" class="panel">
-    <button id="close-panel" class="close">✕</button>
+
+  <!-- =========================
+       SIDE PANEL
+  ========================= -->
+
+  <aside
+    id="panel"
+    class="panel"
+    aria-hidden="true"
+  >
+
+    <button
+      id="close-panel"
+      class="close"
+      type="button"
+      aria-label="Закрыть"
+    >
+      ✕
+    </button>
+
+
     <div id="panel-content"></div>
+
   </aside>
 
-  <div id="toast"></div>
-  <script src="{{ url_for('static', filename='app.js') }}"></script>
+
+  <!-- =========================
+       TOAST
+  ========================= -->
+
+  <div
+    id="toast"
+    role="status"
+    aria-live="polite"
+  ></div>
+
+
+  <!-- =========================
+       JAVASCRIPT
+  ========================= -->
+
+  <script
+    src="{{ url_for('static', filename='app.js') }}"
+  ></script>
+
 </body>
+
 </html>
