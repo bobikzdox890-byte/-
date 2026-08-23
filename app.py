@@ -205,6 +205,35 @@ UPGRADE_COSTS = {
     "gem_income": lambda r: 100 * (1.8 ** r["gem_income_level"]),
 }
 
+LEVEL_COLUMNS = {
+    "tap_cd": "tap_cd_level",
+    "income": "income_level",
+    "energy": "energy_level",
+    "regen": "regen_level",
+    "double": "double_level",
+    "multiplier": "multiplier_level",
+    "gem_income": "gem_income_level",
+}
+
+
+def upgrade_currency(kind):
+    if kind in {"double", "multiplier"}:
+        return "gems"
+    return "dollars"
+
+
+def upgrade_max_level(kind):
+    if kind == "tap_cd":
+        return 20
+
+    if kind == "double":
+        return 50
+
+    if kind == "regen":
+        return 99
+
+    return None
+
 @app.post("/api/upgrade")
 def upgrade():
     payload = request.get_json(silent=True) or {}
