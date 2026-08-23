@@ -1,3 +1,12 @@
+window.onerror = function(message, source, lineno, colno, error) {
+  document.body.insertAdjacentHTML(
+    "afterbegin",
+    `<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;padding:15px;font-size:14px">
+      JS ERROR:<br>${message}<br>Line: ${lineno}
+    </div>`
+  );
+};
+
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
