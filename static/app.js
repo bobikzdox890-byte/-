@@ -113,15 +113,75 @@ function openPanel(type) {
   if (type === "profile") profilePanel();
 }
 
-function upgradesPanel() {
-  $("panel-content").innerHTML = `
-    <h2>⚙️ Прокачка</h2>
-    <div class="row"><div>⏱ Кулдаун тапа<small>−0.05 сек за уровень • максимум 20</small></div><button onclick="buy('tap_cd')">Купить</button></div>
-    <div class="row"><div>🪙 Доход<small>+10% дохода за уровень • бесконечно</small></div><button onclick="buy('income')">Купить</button></div>
-    <div class="row"><div>⚡ Максимум энергии<small>+50% максимума за уровень</small></div><button onclick="buy('energy')">Купить</button></div>
-    <div class="row"><div>♻️ Регенерация<small>−0.10 сек до 0.10 сек</small></div><button onclick="buy('regen')">Купить</button></div>
-    <p>💰 Баланс: €${state.dollars.toFixed(2)}</p>
-  `;
+async function upgradesPanel() {
+  const d = await api(`/api/upgrades?user_id=${encodeURIComponent(uid)}`);
+
+  if (!d.ok) {
+    $("panel-content").innerHTML = "<h2>❌ Не удалось загрузить прокачки</h2>";
+    return;
+  }
+
+  const u = d.upgrades;
+
+  const names = {
+    tap_cd: "⏱ Кулдаун тапа",
+    income: "🪙 Доход",
+    energy: "⚡ Максимум энергии",
+    regen: "♻️ Регенерация"
+  };
+
+  let html = "<h2>⚙️ Прокачка</h2>";
+
+  for (const kind of ["tap_cd", "income", "energy", "regen"]) {
+    const x = u[kind];
+
+    const currency = x.currency === "gems" ? "💎" : "8OLLAR";
+    const balance = x.currency === "gems"
+      ? state.gems
+      : state.dollars;
+
+    const enough = balance >= x.cost;
+    const color = enough ? "#19d96b" : "#e9233f";
+
+    html += `
+      <div class="card upgrade-card">
+        <h3>${names[kind]}</h3>
+
+        <div class="upgrade-price">
+          ${x.maxed ? "МАКСИМУМ" : `${x.cost.toFixed(2)} ${currency}`}
+        </div>
+
+        <div class="upgrade-level">
+          Уровень: <b>${x.level}</b>
+          ${x.max_level !== null ? ` / ${x.max_level}` : ""}
+        </div>
+
+        ${
+          x.maxed
+          ? `<button class="upgrade-max" disabled>🏆 МАКСИМУМ</button>`
+          : `
+            <div class="upgrade-buttons">
+              <button
+                style="background:${color}"
+                onclick="buy('${kind}')"
+              >
+                +1
+              </button>
+
+              <button
+                style="background:${color}"
+                onclick="buyMax('${kind}')"
+              >
+                MAX
+              </button>
+            </div>
+          `
+        }
+      </div>
+    `;
+  }
+
+  $("panel-content").innerHTML = html;
 }
 
 function gemsPanel() {
