@@ -31,7 +31,7 @@ BASE_ENERGY_MAX = 100
 BASE_REGEN_COOLDOWN = 2.0
 BASE_TAP_REWARD = 1
 
-X5_CHANCE = 0.05
+X5_CHANCE = 0.10
 
 
 # =========================
