@@ -201,9 +201,38 @@ function gemsPanel() {
 
 async function buy(kind) {
   const d = await api("/api/upgrade", {
-    method:"POST",
-    body:JSON.stringify({user_id:uid, kind})
+    method: "POST",
+    body: JSON.stringify({
+      user_id: uid,
+      kind: kind
+    })
   });
+
+  if (!d.ok) {
+    if (d.error === "money") {
+      toast(`❌ Нужно ${d.cost} ${d.currency}`);
+    } else if (d.error === "max_level") {
+      toast("🏆 Максимальный уровень");
+    } else {
+      toast("❌ Не удалось купить");
+    }
+    return;
+  }
+
+  render(d.player);
+  toast("✅ Уровень повышен");
+
+  if (
+    kind === "double" ||
+    kind === "multiplier" ||
+    kind === "gem_income"
+  ) {
+    gemsPanel();
+  } else {
+    upgradesPanel();
+  }
+}
+
 
 async function buyMax(kind) {
   const d = await api("/api/upgrade_max", {
@@ -213,6 +242,22 @@ async function buyMax(kind) {
       kind: kind
     })
   });
+
+  if (!d.ok) {
+    if (d.error === "money") {
+      toast(`❌ Нужно ${d.cost} ${d.currency}`);
+    } else if (d.error === "max_level") {
+      toast("🏆 Максимальный уровень");
+    } else {
+      toast("❌ Не удалось купить MAX");
+    }
+    return;
+  }
+
+  render(d.player);
+  toast(`🔥 Куплено уровней: ${d.levels_bought}`);
+  upgradesPanel();
+}
 
   if (!d.ok) {
     if (d.error === "money") {
