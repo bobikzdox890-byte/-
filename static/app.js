@@ -544,6 +544,7 @@ async function profilePanel() {
     await api(
       `/api/referrals?user_id=${encodeURIComponent(uid)}`
     );
+}
 
 
   $("panel-content").innerHTML = `
