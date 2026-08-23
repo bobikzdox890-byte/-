@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>8OLLAR Tap</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="neon"></div>
+
+  <header>
+    <div class="balance">
+      <span>8OLLAR</span>
+      <b id="dollars">0</b>
+    </div>
+    <div class="energy">
+      ⚡ <b id="energy">100</b>/<span id="max-energy">100</span>
+    </div>
+  </header>
+
+  <main id="tap-area">
+    <div id="float-layer"></div>
+    <button id="tap-button" aria-label="Tap"></button>
+    <div class="tap-hint">TAP</div>
+  </main>
+
+  <nav class="bottom">
+    <button data-panel="upgrades">⚙️<span>Апгрейды</span></button>
+    <button data-panel="gems">💎<span>G3MS</span></button>
+    <button data-panel="rating">🏆<span>Рейтинг</span></button>
+    <button data-panel="profile">👤<span>Профиль</span></button>
+  </nav>
+
+  <aside id="panel" class="panel">
+    <button id="close-panel" class="close">✕</button>
+    <div id="panel-content"></div>
+  </aside>
+
+  <div id="toast"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
