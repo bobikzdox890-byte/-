@@ -267,7 +267,7 @@ def upgrade():
     if kind not in UPGRADE_COSTS:
         return jsonify({"ok": False, "error": "unknown upgrade"}), 400
 
-    @app.post("/api/upgrade_max")
+@app.post("/api/upgrade_max")
 def upgrade_max():
     payload = request.get_json(silent=True) or {}
 
