@@ -101,15 +101,16 @@ $("tap-area").addEventListener("click", async (e) => {
 const panel = $("panel");
 $("close-panel").onclick = () => panel.classList.remove("open");
 document.querySelectorAll(".bottom button").forEach(btn => {
-  btn.onclick = () => {
-    alert("КНОПКА РАБОТАЕТ: " + btn.dataset.panel);
-    openPanel(btn.dataset.panel);
-  };
+  btn.onclick = () => openPanel(btn.dataset.panel);
 });
 
 function openPanel(type) {
   panel.classList.add("open");
-  $("panel-content").innerHTML = `<h2>Тест: ${type}</h2><p>Панель работает.</p>`;
+
+  if (type === "upgrades") upgradesPanel();
+  if (type === "gems") gemsPanel();
+  if (type === "rating") ratingPanel();
+  if (type === "profile") profilePanel();
 }
 
 function upgradesPanel() {
