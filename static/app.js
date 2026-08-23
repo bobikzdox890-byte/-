@@ -1,4 +1,5 @@
 window.onerror = function(message, source, lineno) {
+
   document.body.insertAdjacentHTML(
     "afterbegin",
     `<div style="
@@ -60,13 +61,19 @@ function toast(message) {
 
   const element = $("toast");
 
+  if (!element) {
+    return;
+  }
+
   element.textContent = message;
   element.classList.add("show");
 
   clearTimeout(toastTimer);
 
   toastTimer = setTimeout(() => {
+
     element.classList.remove("show");
+
   }, 1400);
 }
 
@@ -83,6 +90,8 @@ let cooldownEnd = 0;
 let tapBusy = false;
 let fingerDown = false;
 
+let bonusTimer = null;
+
 
 /* =========================
    API
@@ -96,21 +105,22 @@ async function api(url, options = {}) {
 
   try {
 
-    const response = await fetch(
-      API + url,
-      {
-        method:
-          options.method || "GET",
+    const response =
+      await fetch(
+        API + url,
+        {
+          method:
+            options.method || "GET",
 
-        headers: {
-          "Content-Type":
-            "application/json"
-        },
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-        body:
-          options.body
-      }
-    );
+          body:
+            options.body
+        }
+      );
 
 
     const text =
@@ -144,18 +154,6 @@ async function api(url, options = {}) {
     );
 
 
-    if (!response.ok) {
-
-      console.error(
-        "API error:",
-        response.status,
-        data
-      );
-
-      return data;
-    }
-
-
     return data;
 
   } catch (error) {
@@ -187,15 +185,21 @@ function render(player) {
 
 
   $("dollars").textContent =
-    Number(player.dollars).toFixed(2);
+    Number(
+      player.dollars
+    ).toFixed(2);
 
 
   $("energy").textContent =
-    Math.floor(player.energy);
+    Math.floor(
+      player.energy
+    );
 
 
   $("max-energy").textContent =
-    Math.floor(player.max_energy);
+    Math.floor(
+      player.max_energy
+    );
 }
 
 
@@ -205,7 +209,16 @@ function render(player) {
 
 function startCooldown(seconds) {
 
-  clearInterval(cooldownTimer);
+  clearInterval(
+    cooldownTimer
+  );
+
+
+  const indicator =
+    $("cooldown-indicator");
+
+  const time =
+    $("cooldown-time");
 
   const button =
     $("tap-button");
@@ -215,18 +228,13 @@ function startCooldown(seconds) {
     Number(seconds);
 
 
-  console.log(
-    "START COOLDOWN:",
-    value
-  );
-
-
   if (
     !Number.isFinite(value) ||
     value <= 0
   ) {
 
     stopCooldown();
+
     return;
   }
 
@@ -238,6 +246,15 @@ function startCooldown(seconds) {
 
   button.classList.add(
     "cooldown"
+  );
+
+
+  indicator.classList.remove(
+    "cooldown-ready"
+  );
+
+  indicator.classList.add(
+    "cooldown-active"
   );
 
 
@@ -258,8 +275,8 @@ function startCooldown(seconds) {
     }
 
 
-    button.textContent =
-      `⏳ ${remaining.toFixed(1)}`;
+    time.textContent =
+      remaining.toFixed(1) + "s";
   }
 
 
@@ -285,6 +302,12 @@ function stopCooldown() {
   cooldownEnd = 0;
 
 
+  const indicator =
+    $("cooldown-indicator");
+
+  const time =
+    $("cooldown-time");
+
   const button =
     $("tap-button");
 
@@ -294,8 +317,170 @@ function stopCooldown() {
   );
 
 
-  button.textContent =
-    "TAP";
+  button.classList.add(
+    "ready"
+  );
+
+
+  indicator.classList.remove(
+    "cooldown-active"
+  );
+
+  indicator.classList.add(
+    "cooldown-ready"
+  );
+
+
+  time.textContent =
+    "READY";
+}
+
+
+/* =========================
+   REWARD
+========================= */
+
+function showReward(amount) {
+
+  const reward =
+    document.createElement("div");
+
+
+  reward.className =
+    "reward-float";
+
+
+  reward.textContent =
+    `+${Number(amount).toFixed(2)}`;
+
+
+  $("float-layer")
+    .appendChild(reward);
+
+
+  setTimeout(() => {
+
+    reward.remove();
+
+  }, 850);
+}
+
+
+/* =========================
+   BONUS
+========================= */
+
+function showBonus(type) {
+
+  clearTimeout(
+    bonusTimer
+  );
+
+
+  const layer =
+    $("bonus-layer");
+
+
+  layer.innerHTML = "";
+
+
+  const bonus =
+    document.createElement("div");
+
+
+  bonus.className =
+    "bonus-float";
+
+
+  if (type === "gem") {
+
+    bonus.textContent =
+      "💎 +1 G3MS";
+
+  } else if (type === "x5") {
+
+    bonus.textContent =
+      "🔥 X5!";
+
+  } else if (type === "double") {
+
+    bonus.textContent =
+      "⚡ DOUBLE!";
+
+  } else {
+
+    return;
+  }
+
+
+  /*
+     Случайная позиция,
+     но не у самого края.
+  */
+
+  const maxX =
+    Math.max(
+      20,
+      window.innerWidth - 180
+    );
+
+
+  const maxY =
+    Math.max(
+      120,
+      window.innerHeight - 180
+    );
+
+
+  const x =
+    20 +
+    Math.random() *
+    Math.max(
+      20,
+      maxX - 20
+    );
+
+
+  const y =
+    100 +
+    Math.random() *
+    Math.max(
+      20,
+      maxY - 100
+    );
+
+
+  bonus.style.left =
+    `${x}px`;
+
+
+  bonus.style.top =
+    `${y}px`;
+
+
+  layer.appendChild(
+    bonus
+  );
+
+
+  /*
+     Бонус исчезает сам.
+  */
+
+  bonusTimer =
+    setTimeout(() => {
+
+      bonus.classList.add(
+        "fade-out"
+      );
+
+      setTimeout(() => {
+
+        bonus.remove();
+
+      }, 250);
+
+    }, 850);
 }
 
 
@@ -330,6 +515,32 @@ async function load() {
   render(
     data.player
   );
+
+
+  /*
+     Восстанавливаем серверный
+     cooldown после загрузки страницы.
+  */
+
+  const remaining =
+    Number(
+      data.player.cooldown_remaining
+    );
+
+
+  if (
+    Number.isFinite(remaining) &&
+    remaining > 0
+  ) {
+
+    startCooldown(
+      remaining
+    );
+
+  } else {
+
+    stopCooldown();
+  }
 }
 
 
@@ -364,6 +575,26 @@ tapButton.addEventListener(
     );
 
 
+    /*
+       Не отправляем новый запрос,
+       если клиент уже знает
+       что cooldown идёт.
+    */
+
+    if (
+      cooldownEnd > Date.now()
+    ) {
+
+      fingerDown = false;
+
+      tapButton.classList.remove(
+        "pressed"
+      );
+
+      return;
+    }
+
+
     if (tapBusy) {
       return;
     }
@@ -395,7 +626,7 @@ tapButton.addEventListener(
 
 
       /* =====================
-         COOLDOWN
+         COOLDOWN ERROR
       ===================== */
 
       if (
@@ -404,22 +635,13 @@ tapButton.addEventListener(
       ) {
 
         const remaining =
-          Number(data.remaining);
-
-
-        console.log(
-          "SERVER COOLDOWN:",
-          remaining
-        );
+          Number(
+            data.remaining
+          );
 
 
         startCooldown(
           remaining
-        );
-
-
-        toast(
-          `⏳ ${remaining.toFixed(1)}с`
         );
 
 
@@ -428,7 +650,7 @@ tapButton.addEventListener(
 
 
       /* =====================
-         ENERGY
+         ENERGY ERROR
       ===================== */
 
       if (
@@ -467,20 +689,10 @@ tapButton.addEventListener(
       );
 
 
-      /*
-         ВАЖНО:
-         кулдаун берём только
-         из ответа сервера.
-      */
-
       const cooldown =
-        Number(data.tap_cd);
-
-
-      console.log(
-        "SUCCESS COOLDOWN:",
-        cooldown
-      );
+        Number(
+          data.tap_cd
+        );
 
 
       startCooldown(
@@ -489,62 +701,39 @@ tapButton.addEventListener(
 
 
       /* =====================
-         FLOAT REWARD
+         REWARD
       ===================== */
 
-      const float =
-        document.createElement(
-          "div"
-        );
-
-
-      float.className =
-        "float";
-
-
-      float.textContent =
-        `+${Number(
-          data.reward
-        ).toFixed(2)}`;
-
-
-      float.style.left =
-        `${event.clientX - 20}px`;
-
-
-      float.style.top =
-        `${event.clientY - 20}px`;
-
-
-      $("float-layer")
-        .appendChild(float);
-
-
-      setTimeout(() => {
-        float.remove();
-      }, 750);
+      showReward(
+        data.reward
+      );
 
 
       /* =====================
-         BONUSES
+         BONUS
       ===================== */
+
+      /*
+         Приоритет:
+         G3MS > X5 > DOUBLE
+      */
 
       if (data.gem_drop) {
 
-        toast(
-          "💎 +1 G3MS"
+        showBonus(
+          "gem"
         );
 
       } else if (data.x5) {
 
-        toast(
-          "🔥 X5!"
+        showBonus(
+          "x5"
         );
 
       } else if (data.doubled) {
 
-        toast(
-          "⚡ DOUBLE!"
+        showBonus(
+          "double"
         );
       }
 
@@ -608,6 +797,11 @@ $("close-panel").onclick = () => {
   panel.classList.remove(
     "open"
   );
+
+  panel.setAttribute(
+    "aria-hidden",
+    "true"
+  );
 };
 
 
@@ -632,6 +826,11 @@ function openPanel(type) {
 
   panel.classList.add(
     "open"
+  );
+
+  panel.setAttribute(
+    "aria-hidden",
+    "false"
   );
 
 
@@ -1098,4 +1297,4 @@ async function profilePanel() {
       </div>
 
     `;
-  }
+    }
