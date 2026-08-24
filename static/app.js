@@ -1,5 +1,4 @@
 window.onerror = function(message, source, lineno) {
-
   document.body.insertAdjacentHTML(
     "afterbegin",
     `<div style="
@@ -59,21 +58,13 @@ const $ = id =>
 let toastTimer = null;
 
 function toast(message) {
-
   const element = $("toast");
-
   if (!element) return;
-
   element.textContent = message;
-
   element.classList.add("show");
-
   clearTimeout(toastTimer);
-
   toastTimer = setTimeout(() => {
-
     element.classList.remove("show");
-
   }, 1400);
 }
 
@@ -100,50 +91,39 @@ const API =
 
 
 async function api(url, options = {}) {
-
   try {
-
     const response =
       await fetch(
         API + url,
         {
           method:
             options.method || "GET",
-
           headers: {
             "Content-Type":
               "application/json"
           },
-
           body:
             options.body
         }
       );
 
-
     const text =
       await response.text();
-
 
     let data;
 
     try {
-
       data = JSON.parse(text);
-
     } catch {
-
       console.error(
         "Invalid JSON:",
         text
       );
-
       return {
         ok: false,
         error: "api_error"
       };
     }
-
 
     console.log(
       "API:",
@@ -151,20 +131,16 @@ async function api(url, options = {}) {
       data
     );
 
-
     return data;
 
   } catch (error) {
-
     console.error(
       "Connection error:",
       error
     );
-
     toast(
-      "❌ Нет связи с сервером"
+      "вќЊ РќРµС‚ СЃРІСЏР·Рё СЃ СЃРµСЂРІРµСЂРѕРј"
     );
-
     return {
       ok: false,
       error: "connection"
@@ -178,7 +154,6 @@ async function api(url, options = {}) {
 ========================= */
 
 function render(player) {
-
   state = player;
 
   $("dollars").textContent =
@@ -190,11 +165,6 @@ function render(player) {
   $("max-energy").textContent =
     Math.floor(player.max_energy);
 
-  /*
-    Если сервер сообщил текущий кулдаун,
-    синхронизируем индикатор.
-  */
-
   const cd =
     Number(player.tap_cd);
 
@@ -202,12 +172,6 @@ function render(player) {
     Number.isFinite(cd) &&
     cd > 0
   ) {
-
-    /*
-      При обычном render не запускаем
-      новый кулдаун, если он уже идёт.
-    */
-
     if (
       cooldownEnd <= Date.now()
     ) {
@@ -224,7 +188,6 @@ function render(player) {
 function updateCooldownIndicator(
   remaining
 ) {
-
   const indicator =
     $("cooldown-indicator");
 
@@ -233,37 +196,24 @@ function updateCooldownIndicator(
 
   if (!indicator || !time) return;
 
-
   if (remaining <= 0) {
-
     indicator.classList.remove(
       "cooldown-active"
     );
-
     indicator.classList.add(
       "cooldown-ready"
     );
-
     time.textContent =
       "READY";
-
     return;
   }
-
 
   indicator.classList.remove(
     "cooldown-ready"
   );
-
   indicator.classList.add(
     "cooldown-active"
   );
-
-
-  /*
-    Показываем сотые секунды,
-    чтобы 0.05 действительно было видно.
-  */
 
   time.textContent =
     `${remaining.toFixed(2)}s`;
@@ -271,117 +221,48 @@ function updateCooldownIndicator(
 
 
 function setReady() {
-
-  clearInterval(
-    cooldownTimer
-  );
-
+  clearInterval(cooldownTimer);
   cooldownTimer = null;
-
   cooldownEnd = 0;
 
+  const button = $("tap-button");
 
-  const button =
-    $("tap-button");
-
-
-  button.classList.remove(
-    "cooldown"
-  );
-
-  button.classList.add(
-    "ready"
-  );
-
+  button.classList.remove("cooldown");
+  button.classList.add("ready");
 
   updateCooldownIndicator(0);
 }
 
 
 function startCooldown(seconds) {
+  clearInterval(cooldownTimer);
 
-  clearInterval(
-    cooldownTimer
-  );
+  const value = Number(seconds);
 
-
-  const value =
-    Number(seconds);
-
-
-  if (
-    !Number.isFinite(value) ||
-    value <= 0
-  ) {
-
+  if (!Number.isFinite(value) || value <= 0) {
     setReady();
-
     return;
   }
 
+  cooldownEnd = Date.now() + value * 1000;
 
-  /*
-    ВАЖНО:
+  const button = $("tap-button");
 
-    НЕ обрезаем кулдаун до 1 секунды.
-
-    Сервер:
-    1.00
-    0.95
-    0.90
-    ...
-    0.05
-  */
-
-  cooldownEnd =
-    Date.now() +
-    value * 1000;
-
-
-  const button =
-    $("tap-button");
-
-
-  button.classList.remove(
-    "ready"
-  );
-
-  button.classList.add(
-    "cooldown"
-  );
-
+  button.classList.remove("ready");
+  button.classList.add("cooldown");
 
   function updateCooldown() {
-
-    const remaining =
-      Math.max(
-        0,
-        cooldownEnd - Date.now()
-      ) / 1000;
-
-
-    updateCooldownIndicator(
-      remaining
-    );
-
+    const remaining = Math.max(0, cooldownEnd - Date.now()) / 1000;
+    updateCooldownIndicator(remaining);
 
     if (remaining <= 0) {
-
       setReady();
-
       return;
     }
   }
 
-
   updateCooldown();
-
-
-  cooldownTimer =
-    setInterval(
-      updateCooldown,
-      20
-    );
+  cooldownTimer = setInterval(updateCooldown, 20);
 }
 
 
@@ -390,38 +271,19 @@ function startCooldown(seconds) {
 ========================= */
 
 async function load() {
-
   const data =
     await api(
       `/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`
     );
 
-
   if (!data.ok) {
-
     toast(
-      "❌ API не отвечает"
+      "вќЊ API РЅРµ РѕС‚РІРµС‡Р°РµС‚"
     );
-
     return;
   }
 
-
-  render(
-    data.player
-  );
-
-
-  /*
-    При загрузке страницы смотрим,
-    сколько реально осталось до
-    следующего тапа.
-
-    Сам сервер отдаёт last_tap_at
-    только внутри базы, поэтому здесь
-    при обычной загрузке просто READY.
-  */
-
+  render(data.player);
   setReady();
 }
 
@@ -440,47 +302,28 @@ const tapButton =
 tapButton.addEventListener(
   "pointerdown",
   async (event) => {
-
     event.preventDefault();
-
 
     if (fingerDown) {
       return;
     }
 
-
-    /*
-      Визуальная реакция СРАЗУ.
-      Сервер здесь вообще не ждём.
-    */
-
     fingerDown = true;
 
-    tapButton.classList.add(
-      "pressed"
-    );
-
-
-    /*
-      Защита от двойного запроса.
-    */
+    tapButton.classList.add("pressed");
 
     if (tapBusy) {
       return;
     }
 
-
     tapBusy = true;
 
-
     try {
-
       const data =
         await api(
           "/api/tap",
           {
             method: "POST",
-
             body: JSON.stringify({
               user_id: uid,
               username: username
@@ -488,279 +331,139 @@ tapButton.addEventListener(
           }
         );
 
-
-      /* =====================
-         COOLDOWN ERROR
-      ===================== */
-
       if (
         !data.ok &&
         data.error === "cooldown"
       ) {
-
         const remaining =
           Number(data.remaining);
-
 
         if (
           Number.isFinite(remaining) &&
           remaining > 0
         ) {
-
-          startCooldown(
-            remaining
-          );
-
-          toast(
-            `⏳ ${remaining.toFixed(2)}с`
-          );
-
+          startCooldown(remaining);
+          toast(`вЏі ${remaining.toFixed(2)}СЃ`);
         } else {
-
           setReady();
-
         }
-
 
         return;
       }
-
-
-      /* =====================
-         ENERGY
-      ===================== */
 
       if (
         !data.ok &&
         data.error === "energy"
       ) {
-
-        toast(
-          "⚡ Нет энергии"
-        );
-
+        toast("вљЎ РќРµС‚ СЌРЅРµСЂРіРёРё");
         return;
       }
-
-
-      /* =====================
-         OTHER ERROR
-      ===================== */
 
       if (!data.ok) {
-
-        toast(
-          "❌ Ошибка тапа"
-        );
-
+        toast("вќЊ РћС€РёР±РєР° С‚Р°РїР°");
         return;
       }
 
-
-      /* =====================
-         SUCCESS
-      ===================== */
-
-      render(
-        data.player
-      );
-
-
-      /*
-        Берём настоящий кулдаун
-        от сервера.
-
-        НЕ Math.min(1, ...)
-        НЕ 45
-        НЕ любое другое ограничение.
-      */
+      render(data.player);
 
       const cooldown =
         Number(data.tap_cd);
 
-
-      startCooldown(
-        cooldown
-      );
-
-
-      /* =====================
-         REWARD
-      ===================== */
+      startCooldown(cooldown);
 
       const reward =
-        document.createElement(
-          "div"
-        );
-
+        document.createElement("div");
 
       reward.className =
         "reward-float";
 
-
       reward.textContent =
-        `+${Number(
-          data.reward
-        ).toFixed(2)}`;
-
-
-      /*
-        Награда появляется
-        около точки нажатия.
-      */
+        `+${Number(data.reward).toFixed(2)}`;
 
       const randomX =
         event.clientX
         + (Math.random() * 100 - 50);
 
-
       const randomY =
         event.clientY
         + (Math.random() * 80 - 40);
 
-
       reward.style.left =
         `${randomX}px`;
-
 
       reward.style.top =
         `${randomY}px`;
 
-
       $("float-layer")
         .appendChild(reward);
 
-
       setTimeout(() => {
-
         reward.remove();
-
       }, 850);
-
-
-      /* =====================
-         BONUS
-      ===================== */
 
       let bonusText = null;
 
-
       if (data.gem_drop) {
-
-        bonusText =
-          "💎 +1 G3MS";
-
+        bonusText = "рџ’Ћ +1 G3MS";
       } else if (data.x5) {
-
-        bonusText =
-          "🔥 X5!";
-
+        bonusText = "рџ”Ґ X5!";
       } else if (data.doubled) {
-
-        bonusText =
-          "⚡ DOUBLE!";
+        bonusText = "вљЎ DOUBLE!";
       }
 
-
-      /*
-        Удаляем старые бонусы.
-      */
-
       document
-        .querySelectorAll(
-          ".bonus-float"
-        )
-        .forEach(
-          element => element.remove()
-        );
-
-
-      /*
-        Новый бонус создаём
-        только если он реально выпал.
-      */
+        .querySelectorAll(".bonus-float")
+        .forEach(element => element.remove());
 
       if (bonusText) {
-
         const bonus =
-          document.createElement(
-            "div"
-          );
-
+          document.createElement("div");
 
         bonus.className =
           "bonus-float";
 
-
         bonus.textContent =
           bonusText;
-
-
-        /*
-          Случайное место
-          на экране.
-        */
 
         const marginX = 20;
         const marginTop = 100;
         const marginBottom = 150;
 
-
         const maxX =
           Math.max(
             marginX,
-            window.innerWidth
-              - 150
+            window.innerWidth - 150
           );
-
 
         const maxY =
           Math.max(
             marginTop,
-            window.innerHeight
-              - marginBottom
-              - 60
+            window.innerHeight - marginBottom - 60
           );
-
 
         const randomBonusX =
           marginX +
-          Math.random()
-          * (
-            maxX - marginX
-          );
-
+          Math.random() * (maxX - marginX);
 
         const randomBonusY =
           marginTop +
-          Math.random()
-          * (
-            maxY - marginTop
-          );
-
+          Math.random() * (maxY - marginTop);
 
         bonus.style.left =
           `${randomBonusX}px`;
 
-
         bonus.style.top =
           `${randomBonusY}px`;
-
 
         $("bonus-layer")
           .appendChild(bonus);
 
-
         setTimeout(() => {
-
           bonus.remove();
-
         }, 850);
       }
 
-
     } finally {
-
       tapBusy = false;
     }
   },
@@ -775,18 +478,13 @@ tapButton.addEventListener(
 ========================= */
 
 function releaseTap(event) {
-
   if (event) {
     event.preventDefault();
   }
 
-
   fingerDown = false;
 
-
-  tapButton.classList.remove(
-    "pressed"
-  );
+  tapButton.classList.remove("pressed");
 }
 
 
@@ -826,36 +524,21 @@ const panel =
 
 
 $("close-panel").onclick = () => {
-
-  panel.classList.remove(
-    "open"
-  );
+  panel.classList.remove("open");
 };
 
 
 document
-  .querySelectorAll(
-    ".bottom button"
-  )
+  .querySelectorAll(".bottom button")
   .forEach(button => {
-
     button.onclick = () => {
-
-      openPanel(
-        button.dataset.panel
-      );
-
+      openPanel(button.dataset.panel);
     };
-
   });
 
 
 function openPanel(type) {
-
-  panel.classList.add(
-    "open"
-  );
-
+  panel.classList.add("open");
 
   if (type === "upgrades") {
     upgradesPanel();
@@ -880,45 +563,27 @@ function openPanel(type) {
 ========================= */
 
 async function upgradesPanel() {
-
   const data =
     await api(
       `/api/upgrades?user_id=${encodeURIComponent(uid)}`
     );
 
-
   if (!data.ok) {
-
     $("panel-content").innerHTML =
-      "<h2>❌ Не удалось загрузить прокачки</h2>";
-
+      "<h2>вќЊ РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїСЂРѕРєР°С‡РєРё</h2>";
     return;
   }
 
-
-  const upgrades =
-    data.upgrades;
-
+  const upgrades = data.upgrades;
 
   const names = {
-
-    tap_cd:
-      "⏱ Кулдаун тапа",
-
-    income:
-      "🪙 Доход",
-
-    energy:
-      "⚡ Максимум энергии",
-
-    regen:
-      "♻️ Регенерация"
+    tap_cd: "вЏ± РљСѓР»РґР°СѓРЅ С‚Р°РїР°",
+    income: "рџЄ™ Р”РѕС…РѕРґ",
+    energy: "вљЎ РњР°РєСЃРёРјСѓРј СЌРЅРµСЂРіРёРё",
+    regen: "в™»пёЏ Р РµРіРµРЅРµСЂР°С†РёСЏ"
   };
 
-
-  let html =
-    "<h2>⚙️ Прокачка</h2>";
-
+  let html = "<h2>вљ™пёЏ РџСЂРѕРєР°С‡РєР°</h2>";
 
   for (
     const kind of [
@@ -928,108 +593,77 @@ async function upgradesPanel() {
       "regen"
     ]
   ) {
-
-    const upgrade =
-      upgrades[kind];
-
+    const upgrade = upgrades[kind];
 
     const currency =
       upgrade.currency === "gems"
-        ? "💎"
+        ? "рџ’Ћ"
         : "8OLLAR";
-
 
     const balance =
       upgrade.currency === "gems"
         ? state.gems
         : state.dollars;
 
-
     const enough =
       balance >= upgrade.cost;
-
 
     const color =
       enough
         ? "#19d96b"
         : "#e9233f";
 
-
     html += `
-
       <div class="card upgrade-card">
-
-        <h3>
-          ${names[kind]}
-        </h3>
-
+        <h3>${names[kind]}</h3>
         <div class="upgrade-price">
-
           ${
             upgrade.maxed
-              ? "МАКСИМУМ"
+              ? "РњРђРљРЎРРњРЈРњ"
               : `${upgrade.cost.toFixed(2)} ${currency}`
           }
-
         </div>
-
         <div class="upgrade-level">
-
-          Уровень:
+          РЈСЂРѕРІРµРЅСЊ:
           <b>${upgrade.level}</b>
-
           ${
             upgrade.max_level !== null
               ? ` / ${upgrade.max_level}`
               : ""
           }
-
         </div>
-
         ${
           upgrade.maxed
-
             ? `
-
               <button
                 class="upgrade-max"
                 disabled
               >
-                🏆 МАКСИМУМ
+                рџЏ† РњРђРљРЎРРњРЈРњ
               </button>
-
             `
-
             : `
-
               <div class="upgrade-buttons">
-
                 <button
                   style="background:${color}"
                   onclick="buy('${kind}')"
                 >
                   +1
                 </button>
-
                 <button
                   style="background:${color}"
                   onclick="buyMax('${kind}')"
                 >
                   MAX
                 </button>
-
               </div>
-
             `
         }
-
       </div>
     `;
   }
 
-
-  $("panel-content")
-    .innerHTML = html;
+  $("panel-content").innerHTML = html;
 }
 
 
@@ -1038,99 +672,55 @@ async function upgradesPanel() {
 ========================= */
 
 function gemsPanel() {
-
   const doubleCost =
-    25 * (
-      3 ** state.double_level
-    );
-
+    25 * (3 ** state.double_level);
 
   const multiplierCost =
-    50 * (
-      2 ** state.multiplier_level
-    );
-
+    50 * (2 ** state.multiplier_level);
 
   const gemIncomeCost =
-    100 * (
-      1.8 ** state.gem_income_level
-    );
-
+    100 * (1.8 ** state.gem_income_level);
 
   $("panel-content").innerHTML = `
-
-    <h2>💎 G3MS</h2>
-
+    <h2>рџ’Ћ G3MS</h2>
     <div class="blue-menu">
-
       <button onclick="buy('double')">
-
-        ⚡ Дабл тап
-
+        вљЎ Р”Р°Р±Р» С‚Р°Рї
         <small>
-          💎 ${doubleCost.toFixed(0)}
+          рџ’Ћ ${doubleCost.toFixed(0)}
         </small>
-
       </button>
-
-
       <button onclick="buy('multiplier')">
-
-        📈 Множитель 8OLLAR
-
+        рџ“€ РњРЅРѕР¶РёС‚РµР»СЊ 8OLLAR
         <small>
-          💎 ${multiplierCost.toFixed(0)}
+          рџ’Ћ ${multiplierCost.toFixed(0)}
         </small>
-
       </button>
-
-
       <button onclick="buy('gem_income')">
-
-        💎 Доход G3MS
-
+        рџ’Ћ Р”РѕС…РѕРґ G3MS
         <small>
-          💎 ${gemIncomeCost.toFixed(0)}
+          рџ’Ћ ${gemIncomeCost.toFixed(0)}
         </small>
-
       </button>
-
     </div>
-
-
     <div class="card">
-
-      💎 Баланс:
+      рџ’Ћ Р‘Р°Р»Р°РЅСЃ:
       ${state.gems.toFixed(0)}
       G3MS
-
     </div>
-
-
     <div class="card">
-
-      ⚡ Дабл:
+      вљЎ Р”Р°Р±Р»:
       ${(state.double_chance * 100).toFixed(0)}%
       / 50%
-
     </div>
-
-
     <div class="card">
-
-      📈 Множитель:
+      рџ“€ РњРЅРѕР¶РёС‚РµР»СЊ:
       x${state.income_multiplier.toFixed(2)}
-
     </div>
-
-
     <div class="card">
-
-      💎 Шанс G3MS:
+      рџ’Ћ РЁР°РЅСЃ G3MS:
       ${(state.gem_chance * 100).toFixed(0)}%
-
     </div>
-
   `;
 }
 
@@ -1140,13 +730,11 @@ function gemsPanel() {
 ========================= */
 
 async function buy(kind) {
-
   const data =
     await api(
       "/api/upgrade",
       {
         method: "POST",
-
         body: JSON.stringify({
           user_id: uid,
           kind: kind
@@ -1154,54 +742,28 @@ async function buy(kind) {
       }
     );
 
-
   if (!data.ok) {
-
     if (data.error === "money") {
-
-      toast(
-        `❌ Нужно ${data.cost} ${data.currency}`
-      );
-
-    } else if (
-      data.error === "max_level"
-    ) {
-
-      toast(
-        "🏆 Максимальный уровень"
-      );
-
+      toast(`вќЊ РќСѓР¶РЅРѕ ${data.cost} ${data.currency}`);
+    } else if (data.error === "max_level") {
+      toast("рџЏ† РњР°РєСЃРёРјР°Р»СЊРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ");
     } else {
-
-      toast(
-        "❌ Не удалось купить"
-      );
+      toast("вќЊ РќРµ СѓРґР°Р»РѕСЃСЊ РєСѓРїРёС‚СЊ");
     }
-
     return;
   }
 
+  render(data.player);
 
-  render(
-    data.player
-  );
-
-
-  toast(
-    "✅ Уровень повышен"
-  );
-
+  toast("вњ… РЈСЂРѕРІРµРЅСЊ РїРѕРІС‹С€РµРЅ");
 
   if (
     kind === "double" ||
     kind === "multiplier" ||
     kind === "gem_income"
   ) {
-
     gemsPanel();
-
   } else {
-
     upgradesPanel();
   }
 }
@@ -1212,13 +774,11 @@ async function buy(kind) {
 ========================= */
 
 async function buyMax(kind) {
-
   const data =
     await api(
       "/api/upgrade_max",
       {
         method: "POST",
-
         body: JSON.stringify({
           user_id: uid,
           kind: kind
@@ -1226,43 +786,20 @@ async function buyMax(kind) {
       }
     );
 
-
   if (!data.ok) {
-
     if (data.error === "money") {
-
-      toast(
-        `❌ Нужно ${data.cost} ${data.currency}`
-      );
-
-    } else if (
-      data.error === "max_level"
-    ) {
-
-      toast(
-        "🏆 Максимальный уровень"
-      );
-
+      toast(`вќЊ РќСѓР¶РЅРѕ ${data.cost} ${data.currency}`);
+    } else if (data.error === "max_level") {
+      toast("рџЏ† РњР°РєСЃРёРјР°Р»СЊРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ");
     } else {
-
-      toast(
-        "❌ Не удалось купить MAX"
-      );
+      toast("вќЊ РќРµ СѓРґР°Р»РѕСЃСЊ РєСѓРїРёС‚СЊ MAX");
     }
-
     return;
   }
 
+  render(data.player);
 
-  render(
-    data.player
-  );
-
-
-  toast(
-    `🔥 Куплено уровней: ${data.levels_bought}`
-  );
-
+  toast(`рџ”Ґ РљСѓРїР»РµРЅРѕ СѓСЂРѕРІРЅРµР№: ${data.levels_bought}`);
 
   upgradesPanel();
 }
@@ -1273,45 +810,27 @@ async function buyMax(kind) {
 ========================= */
 
 async function ratingPanel() {
-
   const data =
-    await api(
-      "/api/leaderboard"
-    );
+    await api("/api/leaderboard");
 
+  let html = "<h2>рџЏ† Р РµР№С‚РёРЅРі</h2>";
 
-  let html =
-    "<h2>🏆 Рейтинг</h2>";
+  (data.items || []).forEach((item, index) => {
+    html += `
+      <div class="row">
+        <div>
+          ${index + 1}.
+          ${item.username}
+        </div>
+        <b>
+          ${Number(item.dollars).toFixed(0)}
+          8OLLAR
+        </b>
+      </div>
+    `;
+  });
 
-
-  (data.items || [])
-    .forEach(
-      (item, index) => {
-
-        html += `
-
-          <div class="row">
-
-            <div>
-              ${index + 1}.
-              ${item.username}
-            </div>
-
-            <b>
-              ${Number(
-                item.dollars
-              ).toFixed(0)}
-              8OLLAR
-            </b>
-
-          </div>
-        `;
-      }
-    );
-
-
-  $("panel-content")
-    .innerHTML = html;
+  $("panel-content").innerHTML = html;
 }
 
 
@@ -1320,57 +839,33 @@ async function ratingPanel() {
 ========================= */
 
 async function profilePanel() {
-
   const data =
     await api(
       `/api/referrals?user_id=${encodeURIComponent(uid)}`
     );
 
-
-  $("panel-content")
-    .innerHTML = `
-
-      <h2>👤 Профиль</h2>
-
-      <div class="card">
-
-        <b>${username}</b>
-
-        <br>
-
-        ID:
-        ${uid}
-
-      </div>
-
-
-      <div class="card">
-
-        🪙 8OLLAR:
-        ${state.dollars.toFixed(2)}
-
-        <br>
-
-        💎 G3MS:
-        ${state.gems.toFixed(0)}
-
-      </div>
-
-
-      <div class="card">
-
-        👥 Рефералы:
-        ${data.referrals}
-
-      </div>
-
-
-      <div class="card">
-
-        🔗 Реферальный код:
-        <b>${data.code}</b>
-
-      </div>
-
-    `;
-                    }
+  $("panel-content").innerHTML = `
+    <h2>рџ‘¤ РџСЂРѕС„РёР»СЊ</h2>
+    <div class="card">
+      <b>${username}</b>
+      <br>
+      ID:
+      ${uid}
+    </div>
+    <div class="card">
+      рџЄ™ 8OLLAR:
+      ${state.dollars.toFixed(2)}
+      <br>
+      рџ’Ћ G3MS:
+      ${state.gems.toFixed(0)}
+    </div>
+    <div class="card">
+      рџ‘Ґ Р РµС„РµСЂР°Р»С‹:
+      ${data.referrals}
+    </div>
+    <div class="card">
+      рџ”— Р РµС„РµСЂР°Р»СЊРЅС‹Р№ РєРѕРґ:
+      <b>${data.code}</b>
+    </div>
+  `;
+          }
