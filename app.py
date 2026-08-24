@@ -649,6 +649,7 @@ def tap():
 
     try:
 
+        # РСЃРїСЂР°РІР»РµРЅРѕ: РґРѕР±Р°РІР»РµРЅР° РїСЂРѕРІРµСЂРєР° last_tap_at
         result = conn.execute(
             """
             UPDATE players
@@ -672,7 +673,7 @@ def tap():
                 AND energy >= 1
 
                 AND (
-                    %s - last_tap_at
+                    %s - COALESCE(last_tap_at, 0)
                 ) >= %s
 
             RETURNING *
@@ -1389,4 +1390,4 @@ if __name__ == "__main__":
         ),
 
         debug=False
-)
+        )
