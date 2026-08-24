@@ -311,9 +311,6 @@ header {
 .reward-float {
   position: fixed;
 
-  top: 95px;
-  left: 24px;
-
   padding: 7px 12px;
 
   border-radius: 10px;
@@ -330,6 +327,10 @@ header {
 
   box-shadow:
     0 0 18px rgba(25, 217, 107, .18);
+
+  pointer-events: none;
+
+  z-index: 31;
 
   animation:
     rewardFloat .85s ease forwards;
@@ -360,18 +361,12 @@ header {
   box-shadow:
     0 0 22px rgba(157, 66, 255, .30);
 
+  pointer-events: none;
+
+  z-index: 32;
+
   animation:
     bonusFloat .85s ease forwards;
-}
-
-.bonus-float.fade-out {
-  opacity: 0;
-
-  transform: scale(.85);
-
-  transition:
-    opacity .25s ease,
-    transform .25s ease;
 }
 
 
