@@ -508,11 +508,6 @@ def tap():
         - last_tap
     )
 
-    # Защита от времени в будущем.
-    # Это НЕ изменяет last_tap_at в базе.
-    # Мы только не позволяем получить
-    # огромный отрицательный elapsed.
-
     if elapsed < 0:
 
         print(
@@ -593,6 +588,10 @@ def tap():
     # =========================
     # REWARD
     # =========================
+
+    old_dollars = float(
+        row["dollars"]
+    )
 
     reward = tap_reward(row)
 
@@ -713,7 +712,6 @@ def tap():
 
                 fresh_elapsed = 0
 
-
             remaining = max(
                 0,
                 cd - fresh_elapsed
@@ -760,6 +758,11 @@ def tap():
 
 
         conn.commit()
+
+        new_dollars = float(
+            result["dollars"]
+        )
+
         conn.close()
 
 
@@ -791,6 +794,21 @@ def tap():
         user_id
     )
 
+    final_dollars = float(
+        player["dollars"]
+    )
+
+    print(
+        "TAP SUCCESS:",
+        {
+            "user_id": user_id,
+            "old_dollars": old_dollars,
+            "reward": reward,
+            "new_dollars_after_update": new_dollars,
+            "new_dollars_from_database": final_dollars
+        }
+    )
+
     return jsonify({
 
         "ok": True,
@@ -815,6 +833,33 @@ def tap():
                 cd,
                 2
             ),
+
+        "debug":
+            {
+                "old_dollars":
+                    round(
+                        old_dollars,
+                        4
+                    ),
+
+                "reward":
+                    round(
+                        reward,
+                        4
+                    ),
+
+                "new_dollars_after_update":
+                    round(
+                        new_dollars,
+                        4
+                    ),
+
+                "new_dollars_from_database":
+                    round(
+                        final_dollars,
+                        4
+                    )
+            },
 
         "player":
             serialize(player)
@@ -1256,6 +1301,7 @@ def upgrade_max():
             )
 
             conn.commit()
+            levels_bought += 1
 
         except Exception:
 
@@ -1267,162 +1313,12 @@ def upgrade_max():
             conn.close()
 
 
-        levels_bought += 1
-
-
-    row = get_player(
-        user_id
-    )
-
-
-    if levels_bought == 0:
-
-        current_level = row[
-            level_col
-        ]
-
-
-        if (
-            max_level is not None
-            and current_level >= max_level
-        ):
-
-            return jsonify({
-
-                "ok": False,
-
-                "error":
-                    "max_level"
-
-            }), 400
-
-
-        cost = UPGRADE_COSTS[
-            kind
-        ](row)
-
-
-        return jsonify({
-
-            "ok": False,
-
-            "error":
-                "money",
-
-            "cost":
-                round(
-                    cost,
-                    2
-                ),
-
-            "currency":
-                currency
-
-        }), 400
-
-
     return jsonify({
 
         "ok": True,
 
         "levels_bought":
             levels_bought,
-
-        "player":
-            serialize(row)
-    })
-
-
-# =========================
-# REFERRALS
-# =========================
-
-@app.get("/api/referrals")
-def referrals():
-
-    user_id = str(
-        request.args.get(
-            "user_id",
-            "local-demo"
-        )
-    )
-
-    row = get_player(
-        user_id
-    )
-
-    return jsonify({
-
-        "ok": True,
-
-        "referrals":
-            row["referrals"],
-
-        "code":
-            f"ref_{user_id}"
-    })
-
-
-# =========================
-# REFERRAL REWARD
-# =========================
-
-@app.post("/api/referral")
-def referral():
-
-    payload = request.get_json(
-        silent=True
-    ) or {}
-
-    user_id = str(
-        payload.get(
-            "user_id",
-            "local-demo"
-        )
-    )
-
-    get_player(
-        user_id
-    )
-
-    conn = db()
-
-    try:
-
-        conn.execute(
-            """
-            UPDATE players
-
-            SET
-                referrals =
-                    referrals + 1,
-
-                dollars =
-                    dollars + 100
-
-            WHERE
-                user_id = %s
-            """,
-            (
-                user_id,
-            )
-        )
-
-        conn.commit()
-
-    except Exception:
-
-        conn.rollback()
-        raise
-
-    finally:
-
-        conn.close()
-
-
-    return jsonify({
-
-        "ok": True,
 
         "player":
             serialize(
