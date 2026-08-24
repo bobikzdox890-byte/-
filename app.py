@@ -55,11 +55,8 @@ def db():
 # =========================
 
 BASE_TAP_COOLDOWN = 1.0
-
 BASE_ENERGY_MAX = 100
-
 BASE_REGEN_COOLDOWN = 2.0
-
 BASE_TAP_REWARD = 1
 
 X5_CHANCE = 0.10
@@ -179,9 +176,11 @@ def regen_energy(row):
 
     current = row["energy"]
 
+    current_time = now()
+
     elapsed = max(
         0,
-        now() - row["last_energy_at"]
+        current_time - row["last_energy_at"]
     )
 
     gained = int(
@@ -201,7 +200,7 @@ def regen_energy(row):
         - gained * cooldown
     )
 
-    new_last = now() - remainder
+    new_last = current_time - remainder
 
     conn = db()
 
@@ -466,10 +465,45 @@ def tap():
 
     current_time = now()
 
+    last_tap = float(
+        row["last_tap_at"] or 0
+    )
+
     elapsed = (
         current_time
-        - row["last_tap_at"]
+        - last_tap
     )
+
+    # Защита от времени,
+    # оказавшегося в будущем.
+    #
+    # Если last_tap_at каким-то образом
+    # оказался позже текущего времени,
+    # старый код мог получить:
+    #
+    # elapsed = -90
+    #
+    # и затем:
+    #
+    # remaining = 0.90 - (-90)
+    #            = 90.90
+    #
+    # Именно это могло давать
+    # твои 91 секунду.
+
+    if elapsed < 0:
+
+        print(
+            "WARNING: last_tap_at is in the future",
+            {
+                "user_id": user_id,
+                "current_time": current_time,
+                "last_tap_at": last_tap,
+                "difference": elapsed
+            }
+        )
+
+        elapsed = 0
 
     if elapsed < cd:
 
@@ -495,7 +529,26 @@ def tap():
                 round(
                     cd,
                     2
-                )
+                ),
+
+            # Диагностика
+            "debug":
+                {
+                    "current_time":
+                        current_time,
+
+                    "last_tap_at":
+                        last_tap,
+
+                    "elapsed":
+                        round(
+                            elapsed,
+                            4
+                        ),
+
+                    "cd":
+                        cd
+                }
 
         }), 429
 
@@ -556,7 +609,6 @@ def tap():
         random.random()
         < gem_chance(row)
     )
-
 
     gem_amount = (
         1
@@ -619,17 +671,29 @@ def tap():
             conn.rollback()
             conn.close()
 
-            # Кто-то уже успел провести тап
             fresh = get_player(
                 user_id
             )
 
+            fresh_last_tap = float(
+                fresh["last_tap_at"] or 0
+            )
+
+            fresh_now = now()
+
+            fresh_elapsed = (
+                fresh_now
+                - fresh_last_tap
+            )
+
+            if fresh_elapsed < 0:
+
+                fresh_elapsed = 0
+
+
             remaining = max(
                 0,
-                cd - (
-                    now()
-                    - fresh["last_tap_at"]
-                )
+                cd - fresh_elapsed
             )
 
             return jsonify({
@@ -649,7 +713,26 @@ def tap():
                     round(
                         cd,
                         2
-                    )
+                    ),
+
+                # Диагностика
+                "debug":
+                    {
+                        "current_time":
+                            fresh_now,
+
+                        "last_tap_at":
+                            fresh_last_tap,
+
+                        "elapsed":
+                            round(
+                                fresh_elapsed,
+                                4
+                            ),
+
+                        "cd":
+                            cd
+                    }
 
             }), 429
 
@@ -658,10 +741,15 @@ def tap():
         conn.close()
 
 
-    except Exception:
+    except Exception as error:
 
         conn.rollback()
         conn.close()
+
+        print(
+            "DATABASE ERROR:",
+            repr(error)
+        )
 
         return jsonify({
 
@@ -680,7 +768,6 @@ def tap():
     player = get_player(
         user_id
     )
-
 
     return jsonify({
 
@@ -984,6 +1071,247 @@ def upgrade():
                 currency
 
         }), 400
+
+
+    conn = db()
+
+    conn.execute(
+        f"""
+        UPDATE players
+
+        SET
+            {currency} =
+                {currency} - %s,
+
+            {level_col} =
+                {level_col} + 1
+
+        WHERE
+            user_id = %s
+        """,
+        (
+            cost,
+            user_id
+        )
+    )
+
+    conn.commit()
+    conn.close()
+
+
+    return jsonify({
+
+        "ok": True,
+
+        "cost":
+            round(
+                cost,
+                2
+            ),
+
+        "player":
+            serialize(
+                get_player(
+                    user_id
+                )
+            )
+    })
+
+
+# =========================
+# BUY MAX
+# =========================
+
+@app.post("/api/upgrade_max")
+def upgrade_max():
+
+    payload = request.get_json(
+        silent=True
+    ) or {}
+
+    user_id = str(
+        payload.get(
+            "user_id",
+            "local-demo"
+        )
+    )
+
+    kind = payload.get(
+        "kind"
+    )
+
+    if kind not in UPGRADE_COSTS:
+
+        return jsonify({
+
+            "ok": False,
+
+            "error":
+                "unknown upgrade"
+
+        }), 400
+
+
+    level_col = LEVEL_COLUMNS[
+        kind
+    ]
+
+    currency = upgrade_currency(
+        kind
+    )
+
+    max_level = upgrade_max_level(
+        kind
+    )
+
+    levels_bought = 0
+
+
+    while True:
+
+        row = get_player(
+            user_id
+        )
+
+        current_level = row[
+            level_col
+        ]
+
+
+        if (
+            max_level is not None
+            and current_level >= max_level
+        ):
+            break
+
+
+        cost = UPGRADE_COSTS[
+            kind
+        ](row)
+
+
+        if row[currency] < cost:
+            break
+
+
+        conn = db()
+
+        conn.execute(
+            f"""
+            UPDATE players
+
+            SET
+                {currency} =
+                    {currency} - %s,
+
+                {level_col} =
+                    {level_col} + 1
+
+            WHERE
+                user_id = %s
+            """,
+            (
+                cost,
+                user_id
+            )
+        )
+
+        conn.commit()
+        conn.close()
+
+        levels_bought += 1
+
+
+    row = get_player(
+        user_id
+    )
+
+
+    if levels_bought == 0:
+
+        current_level = row[
+            level_col
+        ]
+
+
+        if (
+            max_level is not None
+            and current_level >= max_level
+        ):
+
+            return jsonify({
+
+                "ok": False,
+
+                "error":
+                    "max_level"
+
+            }), 400
+
+
+        cost = UPGRADE_COSTS[
+            kind
+        ](row)
+
+
+        return jsonify({
+
+            "ok": False,
+
+            "error":
+                "money",
+
+            "cost":
+                round(            cost,
+            2
+        ),
+
+        "currency":
+            currency
+
+    }), 400
+
+
+conn = db()
+
+conn.execute(
+    f"""
+    UPDATE players
+
+    SET
+        {currency} =
+            {currency} - %s,
+
+        {level_col} =
+            {level_col} + 1
+
+    WHERE
+        user_id = %s
+    """,
+    (
+        cost,
+        user_id
+    )
+)
+
+conn.commit()
+conn.close()
+
+
+return jsonify({
+
+    "ok": True,
+
+    "cost":
+        round(
+            cost,
+            2
+        ),
+
+        "currency":
+            currency
+
+    }), 400
 
 
     conn = db()
