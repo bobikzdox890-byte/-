@@ -1,6 +1,7 @@
 import os
 import time
 import random
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -70,79 +71,55 @@ def init_db():
 
     conn = db()
 
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS players (
-        user_id TEXT PRIMARY KEY,
-        username TEXT DEFAULT 'Player',
+    try:
 
-        dollars REAL DEFAULT 0,
-        gems REAL DEFAULT 0,
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS players (
+            user_id TEXT PRIMARY KEY,
+            username TEXT DEFAULT 'Player',
 
-        energy REAL DEFAULT 100,
+            dollars REAL DEFAULT 0,
+            gems REAL DEFAULT 0,
 
-        last_energy_at REAL DEFAULT 0,
-        last_tap_at REAL DEFAULT 0,
-        last_daily REAL DEFAULT 0,
+            energy REAL DEFAULT 100,
 
-        tap_cd_level INTEGER DEFAULT 0,
-        income_level INTEGER DEFAULT 0,
-        energy_level INTEGER DEFAULT 0,
-        regen_level INTEGER DEFAULT 0,
+            last_energy_at REAL DEFAULT 0,
+            last_tap_at REAL DEFAULT 0,
+            last_daily REAL DEFAULT 0,
 
-        double_level INTEGER DEFAULT 0,
-        multiplier_level INTEGER DEFAULT 0,
-        gem_income_level INTEGER DEFAULT 0,
+            tap_cd_level INTEGER DEFAULT 0,
+            income_level INTEGER DEFAULT 0,
+            energy_level INTEGER DEFAULT 0,
+            regen_level INTEGER DEFAULT 0,
 
-        referrals INTEGER DEFAULT 0
-    )
-    """)
+            double_level INTEGER DEFAULT 0,
+            multiplier_level INTEGER DEFAULT 0,
+            gem_income_level INTEGER DEFAULT 0,
 
-    conn.commit()
-    conn.close()
+            referrals INTEGER DEFAULT 0
+        )
+        """)
+
+        conn.commit()
+
+    finally:
+
+        conn.close()
 
 
 def now():
     return time.time()
 
 
+# =========================
+# PLAYER
+# =========================
+
 def get_player(user_id, username="Player"):
 
     conn = db()
 
-    row = conn.execute(
-        """
-        SELECT *
-        FROM players
-        WHERE user_id=%s
-        """,
-        (str(user_id),)
-    ).fetchone()
-
-    if row is None:
-
-        t = now()
-
-        conn.execute(
-            """
-            INSERT INTO players(
-                user_id,
-                username,
-                energy,
-                last_energy_at,
-                last_tap_at
-            )
-            VALUES(%s, %s, %s, %s, %s)
-            """,
-            (
-                str(user_id),
-                username or "Player",
-                BASE_ENERGY_MAX,
-                t,
-                0
-            )
-        )
-
-        conn.commit()
+    try:
 
         row = conn.execute(
             """
@@ -153,9 +130,46 @@ def get_player(user_id, username="Player"):
             (str(user_id),)
         ).fetchone()
 
-    conn.close()
+        if row is None:
 
-    return row
+            t = now()
+
+            conn.execute(
+                """
+                INSERT INTO players(
+                    user_id,
+                    username,
+                    energy,
+                    last_energy_at,
+                    last_tap_at
+                )
+                VALUES(%s, %s, %s, %s, %s)
+                """,
+                (
+                    str(user_id),
+                    username or "Player",
+                    BASE_ENERGY_MAX,
+                    t,
+                    0
+                )
+            )
+
+            conn.commit()
+
+            row = conn.execute(
+                """
+                SELECT *
+                FROM players
+                WHERE user_id=%s
+                """,
+                (str(user_id),)
+            ).fetchone()
+
+        return row
+
+    finally:
+
+        conn.close()
 
 
 # =========================
@@ -188,7 +202,12 @@ def regen_energy(row):
     )
 
     if gained <= 0:
-        return row, max_energy, cooldown
+
+        return (
+            row,
+            max_energy,
+            cooldown
+        )
 
     new_energy = min(
         max_energy,
@@ -200,33 +219,45 @@ def regen_energy(row):
         - gained * cooldown
     )
 
-    new_last = current_time - remainder
+    new_last = (
+        current_time
+        - remainder
+    )
 
     conn = db()
 
-    conn.execute(
-        """
-        UPDATE players
-        SET
-            energy=%s,
-            last_energy_at=%s
-        WHERE user_id=%s
-        """,
-        (
-            new_energy,
-            new_last,
-            row["user_id"]
-        )
-    )
+    try:
 
-    conn.commit()
-    conn.close()
+        conn.execute(
+            """
+            UPDATE players
+            SET
+                energy=%s,
+                last_energy_at=%s
+            WHERE user_id=%s
+            """,
+            (
+                new_energy,
+                new_last,
+                row["user_id"]
+            )
+        )
+
+        conn.commit()
+
+    finally:
+
+        conn.close()
 
     row = get_player(
         row["user_id"]
     )
 
-    return row, max_energy, cooldown
+    return (
+        row,
+        max_energy,
+        cooldown
+    )
 
 
 # =========================
@@ -420,8 +451,11 @@ def state():
     )
 
     return jsonify({
+
         "ok": True,
-        "player": serialize(player)
+
+        "player":
+            serialize(player)
     })
 
 
@@ -474,22 +508,10 @@ def tap():
         - last_tap
     )
 
-    # Защита от времени,
-    # оказавшегося в будущем.
-    #
-    # Если last_tap_at каким-то образом
-    # оказался позже текущего времени,
-    # старый код мог получить:
-    #
-    # elapsed = -90
-    #
-    # и затем:
-    #
-    # remaining = 0.90 - (-90)
-    #            = 90.90
-    #
-    # Именно это могло давать
-    # твои 91 секунду.
+    # Защита от времени в будущем.
+    # Это НЕ изменяет last_tap_at в базе.
+    # Мы только не позволяем получить
+    # огромный отрицательный elapsed.
 
     if elapsed < 0:
 
@@ -531,7 +553,6 @@ def tap():
                     2
                 ),
 
-            # Диагностика
             "debug":
                 {
                     "current_time":
@@ -583,6 +604,7 @@ def tap():
     )
 
     if doubled:
+
         bonus *= 2
 
 
@@ -592,6 +614,7 @@ def tap():
     )
 
     if x5:
+
         bonus *= 5
 
 
@@ -715,7 +738,6 @@ def tap():
                         2
                     ),
 
-                # Диагностика
                 "debug":
                     {
                         "current_time":
@@ -901,12 +923,15 @@ def upgrade_currency(kind):
 def upgrade_max_level(kind):
 
     if kind == "tap_cd":
+
         return 19
 
     if kind == "double":
+
         return 50
 
     if kind == "regen":
+
         return 99
 
     return None
@@ -1075,28 +1100,38 @@ def upgrade():
 
     conn = db()
 
-    conn.execute(
-        f"""
-        UPDATE players
+    try:
 
-        SET
-            {currency} =
-                {currency} - %s,
+        conn.execute(
+            f"""
+            UPDATE players
 
-            {level_col} =
-                {level_col} + 1
+            SET
+                {currency} =
+                    {currency} - %s,
 
-        WHERE
-            user_id = %s
-        """,
-        (
-            cost,
-            user_id
+                {level_col} =
+                    {level_col} + 1
+
+            WHERE
+                user_id = %s
+            """,
+            (
+                cost,
+                user_id
+            )
         )
-    )
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+
+    except Exception:
+
+        conn.rollback()
+        raise
+
+    finally:
+
+        conn.close()
 
 
     return jsonify({
@@ -1182,6 +1217,7 @@ def upgrade_max():
             max_level is not None
             and current_level >= max_level
         ):
+
             break
 
 
@@ -1191,274 +1227,45 @@ def upgrade_max():
 
 
         if row[currency] < cost:
+
             break
 
 
         conn = db()
 
-        conn.execute(
-            f"""
-            UPDATE players
+        try:
 
-            SET
-                {currency} =
-                    {currency} - %s,
+            conn.execute(
+                f"""
+                UPDATE players
 
-                {level_col} =
-                    {level_col} + 1
+                SET
+                    {currency} =
+                        {currency} - %s,
 
-            WHERE
-                user_id = %s
-            """,
-            (
-                cost,
-                user_id
-            )
-        )
+                    {level_col} =
+                        {level_col} + 1
 
-        conn.commit()
-        conn.close()
-
-        levels_bought += 1
-
-
-    row = get_player(
-        user_id
-    )
-
-
-    if levels_bought == 0:
-
-        current_level = row[
-            level_col
-        ]
-
-
-        if (
-            max_level is not None
-            and current_level >= max_level
-        ):
-
-            return jsonify({
-
-                "ok": False,
-
-                "error":
-                    "max_level"
-
-            }), 400
-
-
-        cost = UPGRADE_COSTS[
-            kind
-        ](row)
-
-
-        return jsonify({
-
-            "ok": False,
-
-            "error":
-                "money",
-
-            "cost":
-                round(            cost,
-            2
-        ),
-
-        "currency":
-            currency
-
-    }), 400
-
-
-conn = db()
-
-conn.execute(
-    f"""
-    UPDATE players
-
-    SET
-        {currency} =
-            {currency} - %s,
-
-        {level_col} =
-            {level_col} + 1
-
-    WHERE
-        user_id = %s
-    """,
-    (
-        cost,
-        user_id
-    )
-)
-
-conn.commit()
-conn.close()
-
-
-return jsonify({
-
-    "ok": True,
-
-    "cost":
-        round(
-            cost,
-            2
-        ),
-
-        "currency":
-            currency
-
-    }), 400
-
-
-    conn = db()
-
-    conn.execute(
-        f"""
-        UPDATE players
-
-        SET
-            {currency} =
-                {currency} - %s,
-
-            {level_col} =
-                {level_col} + 1
-
-        WHERE
-            user_id = %s
-        """,
-        (
-            cost,
-            user_id
-        )
-    )
-
-    conn.commit()
-    conn.close()
-
-
-    return jsonify({
-
-        "ok": True,
-
-        "cost":
-            round(
-                cost,
-                2
-            ),
-
-        "player":
-            serialize(
-                get_player(
+                WHERE
+                    user_id = %s
+                """,
+                (
+                    cost,
                     user_id
                 )
             )
-    })
 
+            conn.commit()
 
-# =========================
-# BUY MAX
-# =========================
+        except Exception:
 
-@app.post("/api/upgrade_max")
-def upgrade_max():
+            conn.rollback()
+            raise
 
-    payload = request.get_json(
-        silent=True
-    ) or {}
+        finally:
 
-    user_id = str(
-        payload.get(
-            "user_id",
-            "local-demo"
-        )
-    )
+            conn.close()
 
-    kind = payload.get(
-        "kind"
-    )
-
-    if kind not in UPGRADE_COSTS:
-
-        return jsonify({
-
-            "ok": False,
-
-            "error":
-                "unknown upgrade"
-
-        }), 400
-
-
-    level_col = LEVEL_COLUMNS[
-        kind
-    ]
-
-    currency = upgrade_currency(
-        kind
-    )
-
-    max_level = upgrade_max_level(
-        kind
-    )
-
-    levels_bought = 0
-
-
-    while True:
-
-        row = get_player(
-            user_id
-        )
-
-        current_level = row[
-            level_col
-        ]
-
-
-        if (
-            max_level is not None
-            and current_level >= max_level
-        ):
-            break
-
-
-        cost = UPGRADE_COSTS[
-            kind
-        ](row)
-
-
-        if row[currency] < cost:
-            break
-
-
-        conn = db()
-
-        conn.execute(
-            f"""
-            UPDATE players
-
-            SET
-                {currency} =
-                    {currency} - %s,
-
-                {level_col} =
-                    {level_col} + 1
-
-            WHERE
-                user_id = %s
-            """,
-            (
-                cost,
-                user_id
-            )
-        )
-
-        conn.commit()
-        conn.close()
 
         levels_bought += 1
 
@@ -1580,27 +1387,37 @@ def referral():
 
     conn = db()
 
-    conn.execute(
-        """
-        UPDATE players
+    try:
 
-        SET
-            referrals =
-                referrals + 1,
+        conn.execute(
+            """
+            UPDATE players
 
-            dollars =
-                dollars + 100
+            SET
+                referrals =
+                    referrals + 1,
 
-        WHERE
-            user_id = %s
-        """,
-        (
-            user_id,
+                dollars =
+                    dollars + 100
+
+            WHERE
+                user_id = %s
+            """,
+            (
+                user_id,
+            )
         )
-    )
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+
+    except Exception:
+
+        conn.rollback()
+        raise
+
+    finally:
+
+        conn.close()
 
 
     return jsonify({
@@ -1625,23 +1442,27 @@ def leaderboard():
 
     conn = db()
 
-    rows = conn.execute(
-        """
-        SELECT
-            username,
-            dollars,
-            gems
+    try:
 
-        FROM players
+        rows = conn.execute(
+            """
+            SELECT
+                username,
+                dollars,
+                gems
 
-        ORDER BY
-            dollars DESC
+            FROM players
 
-        LIMIT 20
-        """
-    ).fetchall()
+            ORDER BY
+                dollars DESC
 
-    conn.close()
+            LIMIT 20
+            """
+        ).fetchall()
+
+    finally:
+
+        conn.close()
 
 
     return jsonify({
@@ -1672,4 +1493,4 @@ if __name__ == "__main__":
         ),
 
         debug=False
-    )
+)
