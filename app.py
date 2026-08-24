@@ -39,6 +39,9 @@ class DBConnection:
     def commit(self):
         self.conn.commit()
 
+    def rollback(self):
+        self.conn.rollback()
+
     def close(self):
         self.conn.close()
 
@@ -52,8 +55,11 @@ def db():
 # =========================
 
 BASE_TAP_COOLDOWN = 1.0
+
 BASE_ENERGY_MAX = 100
+
 BASE_REGEN_COOLDOWN = 2.0
+
 BASE_TAP_REWARD = 1
 
 X5_CHANCE = 0.10
@@ -178,7 +184,9 @@ def regen_energy(row):
         now() - row["last_energy_at"]
     )
 
-    gained = int(elapsed / cooldown)
+    gained = int(
+        elapsed / cooldown
+    )
 
     if gained <= 0:
         return row, max_energy, cooldown
@@ -223,7 +231,7 @@ def regen_energy(row):
 
 
 # =========================
-# UPGRADES / GAME LOGIC
+# GAME LOGIC
 # =========================
 
 def tap_cooldown(row):
@@ -271,7 +279,7 @@ def gem_chance(row):
 
 
 # =========================
-# SERIALIZE PLAYER
+# SERIALIZE
 # =========================
 
 def serialize(row):
@@ -287,25 +295,46 @@ def serialize(row):
             row["username"],
 
         "dollars":
-            round(row["dollars"], 4),
+            round(
+                row["dollars"],
+                4
+            ),
 
         "gems":
-            round(row["gems"], 4),
+            round(
+                row["gems"],
+                4
+            ),
 
         "energy":
-            round(row["energy"], 2),
+            round(
+                row["energy"],
+                2
+            ),
 
         "max_energy":
-            round(max_energy, 2),
+            round(
+                max_energy,
+                2
+            ),
 
         "regen_cd":
-            round(regen_cd, 2),
+            round(
+                regen_cd,
+                2
+            ),
 
         "tap_cd":
-            round(tap_cooldown(row), 2),
+            round(
+                tap_cooldown(row),
+                2
+            ),
 
         "tap_reward":
-            round(tap_reward(row), 4),
+            round(
+                tap_reward(row),
+                4
+            ),
 
         "x5_chance":
             X5_CHANCE,
@@ -386,14 +415,14 @@ def state():
         "Player"
     )
 
+    player = get_player(
+        user_id,
+        username
+    )
+
     return jsonify({
         "ok": True,
-        "player": serialize(
-            get_player(
-                user_id,
-                username
-            )
-        )
+        "player": serialize(player)
     })
 
 
@@ -425,41 +454,22 @@ def tap():
         username
     )
 
-    row, max_energy, _ = regen_energy(row)
+    row, max_energy, _ = regen_energy(
+        row
+    )
+
+    # =========================
+    # COOLDOWN
+    # =========================
 
     cd = tap_cooldown(row)
 
-    # SERVER-SIDE PROTECTION
-    # Normal cooldown can never be above 1 second.
-    cd = min(
-        BASE_TAP_COOLDOWN,
-        max(0.05, cd)
-    )
-
     current_time = now()
 
-    if row["last_tap_at"] > current_time:
-
-        conn = db()
-
-        conn.execute(
-            """
-            UPDATE players
-            SET last_tap_at=%s
-            WHERE user_id=%s
-            """,
-            (
-                current_time - cd,
-                user_id
-            )
-        )
-
-        conn.commit()
-        conn.close()
-
-        row = get_player(user_id)
-
-    elapsed = current_time - row["last_tap_at"]
+    elapsed = (
+        current_time
+        - row["last_tap_at"]
+    )
 
     if elapsed < cd:
 
@@ -469,24 +479,42 @@ def tap():
         )
 
         return jsonify({
+
             "ok": False,
-            "error": "cooldown",
-            "remaining": round(
-                min(cd, remaining),
-                2
-            ),
-            "tap_cd": round(
-                cd,
-                2
-            )
+
+            "error":
+                "cooldown",
+
+            "remaining":
+                round(
+                    remaining,
+                    2
+                ),
+
+            "tap_cd":
+                round(
+                    cd,
+                    2
+                )
+
         }), 429
+
+
+    # =========================
+    # ENERGY
+    # =========================
 
     if row["energy"] < 1:
 
         return jsonify({
+
             "ok": False,
-            "error": "energy"
+
+            "error":
+                "energy"
+
         }), 400
+
 
     # =========================
     # REWARD
@@ -504,6 +532,7 @@ def tap():
     if doubled:
         bonus *= 2
 
+
     x5 = (
         random.random()
         < X5_CHANCE
@@ -512,10 +541,12 @@ def tap():
     if x5:
         bonus *= 5
 
+
     reward *= (
         income_multiplier(row)
         * bonus
     )
+
 
     # =========================
     # GEMS
@@ -526,43 +557,130 @@ def tap():
         < gem_chance(row)
     )
 
-    new_gems = (
-        row["gems"]
-        + (1 if gem_drop else 0)
+
+    gem_amount = (
+        1
+        if gem_drop
+        else 0
     )
 
+
     # =========================
-    # SAVE TAP
+    # ATOMIC SAVE
     # =========================
 
     tap_time = now()
 
     conn = db()
 
-    conn.execute(
-        """
-        UPDATE players
-        SET
-            dollars=dollars+%s,
-            gems=%s,
-            energy=energy-1,
-            last_tap_at=%s
-        WHERE user_id=%s
-        """,
-        (
-            reward,
-            new_gems,
-            tap_time,
-            user_id
-        )
-    )
+    try:
 
-    conn.commit()
-    conn.close()
+        result = conn.execute(
+            """
+            UPDATE players
 
-    row = get_player(
+            SET
+                dollars =
+                    dollars + %s,
+
+                gems =
+                    gems + %s,
+
+                energy =
+                    energy - 1,
+
+                last_tap_at =
+                    %s
+
+            WHERE
+                user_id = %s
+
+                AND energy >= 1
+
+                AND (
+                    %s - last_tap_at
+                ) >= %s
+
+            RETURNING *
+            """,
+            (
+                reward,
+                gem_amount,
+                tap_time,
+                user_id,
+                tap_time,
+                cd
+            )
+        ).fetchone()
+
+
+        if result is None:
+
+            conn.rollback()
+            conn.close()
+
+            # Кто-то уже успел провести тап
+            fresh = get_player(
+                user_id
+            )
+
+            remaining = max(
+                0,
+                cd - (
+                    now()
+                    - fresh["last_tap_at"]
+                )
+            )
+
+            return jsonify({
+
+                "ok": False,
+
+                "error":
+                    "cooldown",
+
+                "remaining":
+                    round(
+                        remaining,
+                        2
+                    ),
+
+                "tap_cd":
+                    round(
+                        cd,
+                        2
+                    )
+
+            }), 429
+
+
+        conn.commit()
+        conn.close()
+
+
+    except Exception:
+
+        conn.rollback()
+        conn.close()
+
+        return jsonify({
+
+            "ok": False,
+
+            "error":
+                "database"
+
+        }), 500
+
+
+    # =========================
+    # FINAL PLAYER
+    # =========================
+
+    player = get_player(
         user_id
     )
+
 
     return jsonify({
 
@@ -590,7 +708,7 @@ def tap():
             ),
 
         "player":
-            serialize(row)
+            serialize(player)
     })
 
 
@@ -674,7 +792,7 @@ LEVEL_COLUMNS = {
 
 
 # =========================
-# UPGRADE CURRENCY
+# CURRENCY
 # =========================
 
 def upgrade_currency(kind):
@@ -696,7 +814,7 @@ def upgrade_currency(kind):
 def upgrade_max_level(kind):
 
     if kind == "tap_cd":
-        return 20
+        return 19
 
     if kind == "double":
         return 50
@@ -739,31 +857,39 @@ def upgrades():
 
         result[kind] = {
 
-            "level": level,
+            "level":
+                level,
 
-                                    "cost": round(
-                cost_func(row),
-                2
-            ),
+            "cost":
+                round(
+                    cost_func(row),
+                    2
+                ),
 
-            "currency": upgrade_currency(kind),
+            "currency":
+                upgrade_currency(kind),
 
-            "max_level": max_level,
+            "max_level":
+                max_level,
 
-            "maxed": (
-                max_level is not None
-                and level >= max_level
-            )
+            "maxed":
+                (
+                    max_level is not None
+                    and level >= max_level
+                )
         }
 
     return jsonify({
+
         "ok": True,
-        "upgrades": result
+
+        "upgrades":
+            result
     })
 
 
 # =========================
-# BUY ONE UPGRADE
+# BUY ONE
 # =========================
 
 @app.post("/api/upgrade")
@@ -780,64 +906,128 @@ def upgrade():
         )
     )
 
-    kind = payload.get("kind")
+    kind = payload.get(
+        "kind"
+    )
 
     if kind not in UPGRADE_COSTS:
+
         return jsonify({
+
             "ok": False,
-            "error": "unknown upgrade"
+
+            "error":
+                "unknown upgrade"
+
         }), 400
 
-    row = get_player(user_id)
+
+    row = get_player(
+        user_id
+    )
 
     level_col = LEVEL_COLUMNS[kind]
-    currency = upgrade_currency(kind)
-    max_level = upgrade_max_level(kind)
 
-    current_level = row[level_col]
+    currency = upgrade_currency(
+        kind
+    )
+
+    max_level = upgrade_max_level(
+        kind
+    )
+
+    current_level = row[
+        level_col
+    ]
+
 
     if (
         max_level is not None
         and current_level >= max_level
     ):
+
         return jsonify({
+
             "ok": False,
-            "error": "max_level"
+
+            "error":
+                "max_level"
+
         }), 400
 
-    cost = UPGRADE_COSTS[kind](row)
-    balance = row[currency]
+
+    cost = UPGRADE_COSTS[
+        kind
+    ](row)
+
+    balance = row[
+        currency
+    ]
+
 
     if balance < cost:
+
         return jsonify({
+
             "ok": False,
-            "error": "money",
-            "cost": round(cost, 2),
-            "currency": currency
+
+            "error":
+                "money",
+
+            "cost":
+                round(
+                    cost,
+                    2
+                ),
+
+            "currency":
+                currency
+
         }), 400
+
 
     conn = db()
 
     conn.execute(
         f"""
         UPDATE players
+
         SET
-            {currency} = {currency} - %s,
-            {level_col} = {level_col} + 1
-        WHERE user_id = %s
+            {currency} =
+                {currency} - %s,
+
+            {level_col} =
+                {level_col} + 1
+
+        WHERE
+            user_id = %s
         """,
-        (cost, user_id)
+        (
+            cost,
+            user_id
+        )
     )
 
     conn.commit()
     conn.close()
 
+
     return jsonify({
+
         "ok": True,
-        "cost": round(cost, 2),
-        "player": serialize(
-            get_player(user_id)
-        )
+
+        "cost":
+            round(
+                cost,
+                2
+            ),
+
+        "player":
+            serialize(
+                get_player(
+                    user_id
+                )
+            )
     })
 
 
@@ -859,25 +1049,47 @@ def upgrade_max():
         )
     )
 
-    kind = payload.get("kind")
+    kind = payload.get(
+        "kind"
+    )
 
     if kind not in UPGRADE_COSTS:
+
         return jsonify({
+
             "ok": False,
-            "error": "unknown upgrade"
+
+            "error":
+                "unknown upgrade"
+
         }), 400
 
-    level_col = LEVEL_COLUMNS[kind]
-    currency = upgrade_currency(kind)
-    max_level = upgrade_max_level(kind)
+
+    level_col = LEVEL_COLUMNS[
+        kind
+    ]
+
+    currency = upgrade_currency(
+        kind
+    )
+
+    max_level = upgrade_max_level(
+        kind
+    )
 
     levels_bought = 0
 
+
     while True:
 
-        row = get_player(user_id)
+        row = get_player(
+            user_id
+        )
 
-        current_level = row[level_col]
+        current_level = row[
+            level_col
+        ]
+
 
         if (
             max_level is not None
@@ -885,22 +1097,36 @@ def upgrade_max():
         ):
             break
 
-        cost = UPGRADE_COSTS[kind](row)
+
+        cost = UPGRADE_COSTS[
+            kind
+        ](row)
+
 
         if row[currency] < cost:
             break
+
 
         conn = db()
 
         conn.execute(
             f"""
             UPDATE players
+
             SET
-                {currency} = {currency} - %s,
-                {level_col} = {level_col} + 1
-            WHERE user_id = %s
+                {currency} =
+                    {currency} - %s,
+
+                {level_col} =
+                    {level_col} + 1
+
+            WHERE
+                user_id = %s
             """,
-            (cost, user_id)
+            (
+                cost,
+                user_id
+            )
         )
 
         conn.commit()
@@ -908,34 +1134,67 @@ def upgrade_max():
 
         levels_bought += 1
 
-    row = get_player(user_id)
+
+    row = get_player(
+        user_id
+    )
+
 
     if levels_bought == 0:
 
-        current_level = row[level_col]
+        current_level = row[
+            level_col
+        ]
+
 
         if (
             max_level is not None
             and current_level >= max_level
         ):
+
             return jsonify({
+
                 "ok": False,
-                "error": "max_level"
+
+                "error":
+                    "max_level"
+
             }), 400
 
-        cost = UPGRADE_COSTS[kind](row)
+
+        cost = UPGRADE_COSTS[
+            kind
+        ](row)
+
 
         return jsonify({
+
             "ok": False,
-            "error": "money",
-            "cost": round(cost, 2),
-            "currency": currency
+
+            "error":
+                "money",
+
+            "cost":
+                round(
+                    cost,
+                    2
+                ),
+
+            "currency":
+                currency
+
         }), 400
 
+
     return jsonify({
+
         "ok": True,
-        "levels_bought": levels_bought,
-        "player": serialize(row)
+
+        "levels_bought":
+            levels_bought,
+
+        "player":
+            serialize(row)
     })
 
 
@@ -953,12 +1212,19 @@ def referrals():
         )
     )
 
-    row = get_player(user_id)
+    row = get_player(
+        user_id
+    )
 
     return jsonify({
+
         "ok": True,
-        "referrals": row["referrals"],
-        "code": f"ref_{user_id}"
+
+        "referrals":
+            row["referrals"],
+
+        "code":
+            f"ref_{user_id}"
     })
 
 
@@ -980,29 +1246,45 @@ def referral():
         )
     )
 
-    get_player(user_id)
+    get_player(
+        user_id
+    )
 
     conn = db()
 
     conn.execute(
         """
         UPDATE players
+
         SET
-            referrals = referrals + 1,
-            dollars = dollars + 100
-        WHERE user_id = %s
+            referrals =
+                referrals + 1,
+
+            dollars =
+                dollars + 100
+
+        WHERE
+            user_id = %s
         """,
-        (user_id,)
+        (
+            user_id,
+        )
     )
 
     conn.commit()
     conn.close()
 
+
     return jsonify({
+
         "ok": True,
-        "player": serialize(
-            get_player(user_id)
-        )
+
+        "player":
+            serialize(
+                get_player(
+                    user_id
+                )
+            )
     })
 
 
@@ -1021,36 +1303,19 @@ def leaderboard():
             username,
             dollars,
             gems
+
         FROM players
-        ORDER BY dollars DESC
+
+        ORDER BY
+            dollars DESC
+
         LIMIT 20
         """
     ).fetchall()
 
     conn.close()
 
+
     return jsonify({
-        "ok": True,
-        "items": [
-            dict(row)
-            for row in rows
-        ]
-    })
 
-
-# =========================
-# RUN SERVER
-# =========================
-
-if __name__ == "__main__":
-
-    app.run(
-        host="0.0.0.0",
-        port=int(
-            os.getenv(
-                "PORT",
-                "5000"
-            )
-        ),
-        debug=False
-    )
+        "ok"
