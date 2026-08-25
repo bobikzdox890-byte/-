@@ -28,7 +28,6 @@ let state = null;
 let cooldownTimer = null;
 let cooldownEnd = 0;
 let tapBusy = false;
-let fingerDown = false;
 let currentPanelType = null;
 
 const API = window.location.origin;
@@ -126,13 +125,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const tapButton = $("tap-button");
   if (tapButton) {
-    tapButton.addEventListener("pointerdown", async (event) => {
-      event.preventDefault();
-      if (fingerDown) return;
-      fingerDown = true;
-      tapButton.classList.add("pressed");
+    
+    // Мгновенный тач-клик на мобильном без выделения и задержек
+    const handleTapStart = async (event) => {
+      if (event.cancelable) event.preventDefault();
+      
+      // Кнопка визуально "утопилась"
+      tapButton.classList.add("pressed"); 
+      
       if (tapBusy) return;
       tapBusy = true;
+
+      const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+      const clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
       try {
         const res = await api("/api/tap", {
@@ -157,8 +162,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const reward = document.createElement("div");
         reward.className = "reward-float";
         reward.textContent = `+${Number(res.reward).toFixed(2)}`;
-        reward.style.left = `${event.clientX + (Math.random() * 100 - 50)}px`;
-        reward.style.top = `${event.clientY + (Math.random() * 80 - 40)}px`;
+        reward.style.left = `${clientX + (Math.random() * 80 - 40)}px`;
+        reward.style.top = `${clientY + (Math.random() * 60 - 30)}px`;
         const floatLayer = $("float-layer");
         if (floatLayer) floatLayer.appendChild(reward);
         setTimeout(() => { reward.remove(); }, 850);
@@ -177,12 +182,23 @@ document.addEventListener("DOMContentLoaded", async () => {
           setTimeout(() => { bonus.remove(); }, 850);
         }
       } finally { tapBusy = false; }
-    }, { passive: false });
+    };
 
-    const releaseTap = (event) => { if (event) event.preventDefault(); fingerDown = false; tapButton.classList.remove("pressed"); };
-    tapButton.addEventListener("pointerup", releaseTap, { passive: false });
-    tapButton.addEventListener("pointercancel", releaseTap, { passive: false });
-    tapButton.addEventListener("pointerleave", releaseTap, { passive: false });
+    const handleTapEnd = (event) => {
+      if (event.cancelable) event.preventDefault();
+      // Отпустил палец — кнопка вернулась обратно
+      tapButton.classList.remove("pressed"); 
+    };
+
+    // Вешаем мобильные тачи
+    tapButton.addEventListener("touchstart", handleTapStart, { passive: false });
+    tapButton.addEventListener("touchend", handleTapEnd, { passive: false });
+    tapButton.addEventListener("touchcancel", handleTapEnd, { passive: false });
+    
+    // Подстраховка для мышки ПК
+    tapButton.addEventListener("mousedown", handleTapStart);
+    tapButton.addEventListener("mouseup", handleTapEnd);
+    tapButton.addEventListener("mouseleave", handleTapEnd);
   }
 
   const panel = $("panel");
@@ -261,14 +277,4 @@ async function gemsPanel() {
         <button style="background:var(--purple)" onclick="buyGemUpgrade('multiplier')">Прокачать</button>
       </div>
       <div class="card upgrade-card">
-        <h3>💎 GEM INCOME (Дроп гемов)</h3>
-        <div class="upgrade-price">${upGemInc.cost.toFixed(2)} 💎</div>
-        <div class="upgrade-level">Уровень: <b>${upGemInc.level}</b> (Шанс: ${(state.gem_chance * 100).toFixed(0)}%)</div>
-        <button style="background:var(--purple)" onclick="buyGemUpgrade('gem_income')">Прокачать</button>
-      </div>
-    </div>`;
-}
-
-function ratingPanel() {
-  const content = $("panel-content");
-        
+                               
