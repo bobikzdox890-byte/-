@@ -43,7 +43,7 @@ body {
   display: flex; 
   flex-direction: column; 
   height: 100vh; 
-  padding: 25px 20px 95px 20px; /* Большой нижний отступ, чтобы кнопка тапа не лезла под меню */
+  padding: 25px 20px 95px 20px; 
   justify-content: space-between; 
   position: relative; 
   z-index: 1; 
@@ -91,10 +91,9 @@ body {
   cursor: pointer; 
   position: relative; 
   outline: none; 
-  transition: none !important; /* Убираем задержки анимации */
+  transition: none !important; 
 }
 
-/* Мгновенная реакция кнопки на клик */
 #tap-button:active, #tap-button.pressed { 
   transform: scale(0.93) !important; 
   box-shadow: 0 0 20px rgba(138, 36, 255, 0.2), inset 0 0 30px rgba(138, 36, 255, 0.7) !important; 
@@ -109,13 +108,13 @@ body {
 .bonus-float { position: absolute; color: #ffdd00; font-weight: 900; font-size: 20px; animation: floatUp 0.85s ease-out forwards; text-shadow: 0 2px 10px rgba(255,221,0,0.6); }
 @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100px) scale(0.8); opacity: 0; } }
 
-/* ИСПРАВЛЕННЫЙ И ФИКСИРОВАННЫЙ НИЖНИЙ НАВИГАЦИОННЫЙ БЛОК */
+/* НИЖНИЙ НАВИГАЦИОННЫЙ БЛОК */
 .bottom { 
   display: grid; 
   grid-template-columns: repeat(4, 1fr); 
   gap: 8px; 
   position: fixed; 
-  bottom: 22px; /* Четкая посадка внутри неоновой рамки */
+  bottom: 22px; 
   left: 22px;
   right: 22px;
   z-index: 15; 
@@ -172,104 +171,104 @@ body {
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ========================================================
-   ФИКСЫ ДЛЯ ДИНАМИЧЕСКОГО КОНТЕНТА ШТОРКИ (#panel-content)
+   ОБЩИЕ СТИЛИ ДЛЯ КОНТЕНТА ШТОРКИ (#panel-content)
    ======================================================== */
-#panel-content {
-  padding-top: 10px;
-}
+#panel-content { padding-top: 10px; }
+#panel-content h2 { text-align: center; margin-bottom: 20px; font-size: 22px; font-weight: 800; text-transform: uppercase; }
 
-#panel-content h2 {
-  text-align: center;
-  margin-bottom: 15px;
-  font-size: 22px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-/* Строки Топа и Лидерборда */
-.leaderboard-container {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+/* --------------------------------------------------------
+   СТИЛИ ЛИДЕРБОРДА И КАСТОМНЫХ РАМОК ТОП-3
+   -------------------------------------------------------- */
+.leaderboard-container { display: flex; flex-direction: column; gap: 10px; }
 
 .row { 
   display: flex !important; 
   justify-content: space-between !important; 
   align-items: center !important;
-  padding: 12px 8px !important; 
-  border-bottom: 1px solid rgba(255,255,255,0.05) !important; 
+  padding: 12px 14px !important; 
+  border-radius: 12px !important;
 }
 
-.row span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 60%;
-}
+.row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; font-weight: 600; }
+.row b { white-space: nowrap; margin-left: auto !important; text-align: right; font-size: 15px; }
 
-.row b {
-  color: var(--purple);
-  text-shadow: 0 0 8px rgba(138, 36, 255, 0.4);
-  font-size: 15px;
-  white-space: nowrap;
-  margin-left: auto !important; /* Намертво прижимает балансы вправо */
-  text-align: right;
+/* 🥇 1 МЕСТО — ЗОЛОТАЯ РАМКА */
+.rank-gold {
+  background: rgba(255, 215, 0, 0.05) !important;
+  border: 1px solid #ffd700 !important;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
 }
+.rank-gold b { color: #ffd700 !important; text-shadow: 0 0 8px rgba(255, 215, 0, 0.5); font-weight: 900; }
 
-/* Красивая неоновая бирюзовая плашка "Ваше место" */
+/* 🥈 2 МЕСТО — СЕРЕБРЯНАЯ РАМКА */
+.rank-silver {
+  background: rgba(192, 192, 192, 0.05) !important;
+  border: 1px solid #c0c0c0 !important;
+  box-shadow: 0 0 10px rgba(192, 192, 192, 0.15);
+}
+.rank-silver b { color: #c0c0c0 !important; text-shadow: 0 0 8px rgba(192, 192, 192, 0.4); font-weight: 800; }
+
+/* 🥉 3 МЕСТО — БРОНЗОВАЯ РАМКА */
+.rank-bronze {
+  background: rgba(205, 127, 50, 0.05) !important;
+  border: 1px solid #cd7f32 !important;
+  box-shadow: 0 0 8px rgba(205, 127, 50, 0.15);
+}
+.rank-bronze b { color: #cd7f32 !important; text-shadow: 0 0 6px rgba(205, 127, 50, 0.4); font-weight: 800; }
+
+/* 4+ МЕСТА — ОБЫЧНАЯ ТЕМНАЯ РАМКА */
+.rank-normal {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.rank-normal b { color: var(--purple) !important; font-weight: 700; }
+
+/* ТВОЙ ЖИВОЙ ВИДЖЕТ БАЛАНСА "ВАШЕ МЕСТО" */
 .current-user-row {
   background: rgba(0, 210, 255, 0.08) !important;
-  border-left: 4px solid var(--blue) !important;
-  border-bottom: none !important;
-  border-radius: 10px;
-  padding: 12px 14px !important;
-  margin-top: 10px;
+  border: 1px solid var(--blue) !important;
+  border-left: 5px solid var(--blue) !important;
   box-shadow: 0 0 15px rgba(0, 210, 255, 0.15);
+  margin-top: 8px;
 }
+.current-user-row b { color: var(--blue) !important; text-shadow: 0 0 10px rgba(0, 210, 255, 0.6) !important; font-weight: 900; }
 
-.current-user-row b {
-  color: var(--blue) !important;
-  text-shadow: 0 0 10px rgba(0, 210, 255, 0.6) !important;
-}
-
-/* Овальный бейдж баланса кристаллов в G3MS магазине */
+/* --------------------------------------------------------
+   СТИЛИ МАГАЗИНА G3MS И ПРОФИЛЯ
+   -------------------------------------------------------- */
 .shop-balance-badge {
-  text-align: center;
-  font-size: 15px;
-  color: #aaa;
-  background: rgba(138, 36, 255, 0.12);
-  border: 1px solid rgba(138, 36, 255, 0.3);
-  padding: 8px 16px;
-  border-radius: 20px;
-  width: fit-content;
-  margin: 0 auto 20px auto;
-  box-shadow: 0 0 10px rgba(138, 36, 255, 0.2);
+  text-align: center; font-size: 15px; color: #aaa; background: rgba(138, 36, 255, 0.12); border: 1px solid rgba(138, 36, 255, 0.3); padding: 8px 16px; border-radius: 20px; width: fit-content; margin: 0 auto 20px auto; box-shadow: 0 0 10px rgba(138, 36, 255, 0.2);
 }
+.shop-balance-badge b { color: var(--purple); font-size: 17px; white-space: nowrap; }
 
-.shop-balance-badge b {
-  color: var(--purple);
-  font-size: 17px;
-  white-space: nowrap;
-}
-
-/* Профиль игрока */
+/* Сетка расширенного профиля пользователя */
 .profile-container {
-  text-align: center;
-  padding: 15px;
-  font-size: 16px;
-  color: #aaa;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 5px;
 }
-.profile-container p { margin-bottom: 12px; }
-.profile-highlight { color: #fff; font-weight: bold; }
-.profile-highlight-blue { color: var(--blue); font-weight: bold; }
+.profile-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 14px 16px;
+  border-radius: 14px;
+}
+.profile-item span:first-child { color: #aaa; font-weight: 500; font-size: 14px; }
+.profile-value { color: #fff; font-weight: bold; font-size: 15px; }
+.profile-value-blue { color: var(--blue); font-weight: bold; font-size: 15px; }
+.profile-value-green { color: #19d96b; font-weight: bold; font-size: 16px; text-shadow: 0 0 8px rgba(25, 217, 107, 0.3); }
+.profile-value-purple { color: var(--purple); font-weight: bold; font-size: 16px; text-shadow: 0 0 8px rgba(138, 36, 255, 0.3); }
+.profile-value-gold { color: #ffd700; font-weight: bold; font-size: 15px; text-shadow: 0 0 8px rgba(255, 215, 0, 0.2); }
 
-/* Медиа-запрос под мелкие экраны */
+/* АДАПТИВ ПОД МЕЛКИЕ ЭКРАНЫ */
 @media (max-width: 360px) {
   #dollars { font-size: 34px; }
   #tap-button { width: 180px; height: 180px; }
   .bottom { bottom: 18px; left: 18px; right: 18px; gap: 4px; }
   .bottom button { font-size: 10px; padding: 10px 2px; }
   #panel-content h2 { font-size: 18px; }
-  .row { padding: 10px 4px !important; font-size: 13px; }
-}
+  .row { padding: 10px 10px !important; font-size: 13px; }
