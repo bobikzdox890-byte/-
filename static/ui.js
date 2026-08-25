@@ -1,6 +1,4 @@
-// МОДУЛЬ UI ДЛЯ 8OLLAR TAP — ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ
-const $ = id => document.getElementById(id);
-
+// МОДУЛЬ UI ДЛЯ 8OLLAR TAP — ВЕРСИЯ С ИСПРАВЛЕННЫМ СИНТАКСИСОМ
 document.addEventListener("DOMContentLoaded", async () => {
   // Загружаем стартовое состояние игрока при входе
   const data = await api(`/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`);
