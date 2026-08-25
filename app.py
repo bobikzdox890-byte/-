@@ -205,122 +205,22 @@ def state():
 # =========================
 # TAP
 # =========================
-@app.post("/api/tap")
-def tap():
-    payload = request.get_json(silent=True) or {}
-    user_id = str(payload.get("user_id", "local-demo"))
-    username = payload.get("username", "Player")
+@app.get("/api/upgrades")
+def upgrades():
+    user_id = str(request.args.get("user_id", "local-demo"))
+    row = get_player(user_id)
+    result = {}
+    for kind, cost_func in UPGRADE_COSTS.items():
+        level_col = LEVEL_COLUMNS[kind]
+        result[kind] = {
+            "level": row[level_col],
+            "cost": round(cost_func(row), 2),
+            "currency": upgrade_currency(kind),
+            "max_level": upgrade_max_level(kind),
+            "maxed": (upgrade_max_level(kind) is not None and row[level_col] >= upgrade_max_level(kind))
+        }
+    return jsonify({"ok": True, "upgrades": result})
 
-    row = get_player(user_id, username)
-    row, max_energy, _ = regen_energy(row)
-
-    cd = tap_cooldown(row)
-    current_time = now()
-    last_tap = float(row["last_tap_at"] or 0)
-    elapsed = current_time - last_tap
-
-    if elapsed < 0:
-        elapsed = 0
-
-    if elapsed < cd:
-        remaining = max(0, cd - elapsed)
-        return jsonify({
-            "ok": False,
-            "error": "cooldown",
-            "remaining": round(remaining, 2),
-            "tap_cd": round(cd, 2)
-        }), 429
-
-    if row["energy"] < 1:
-        return jsonify({
-            "ok": False,
-            "error": "energy"
-        }), 400
-
-    reward = tap_reward(row)
-    bonus = 1
-
-    doubled = random.random() < double_chance(row)
-    if doubled:
-        bonus *= 2
-
-    x5 = random.random() < X5_CHANCE
-    if x5:
-        bonus *= 5
-
-    reward *= (income_multiplier(row) * bonus)
-    gem_drop = random.random() < gem_chance(row)
-    gem_amount = 1 if gem_drop else 0
-
-    tap_time = now()
-    conn = db()
-    try:
-        result = conn.execute("""
-            UPDATE players
-            SET dollars = dollars + %s, gems = gems + %s, energy = energy - 1, last_tap_at = %s
-            WHERE user_id = %s AND energy >= 1 AND (%s - COALESCE(last_tap_at, 0)) >= %s
-            RETURNING *
-        """, (reward, gem_amount, tap_time, user_id, tap_time, cd)).fetchone()
-
-        if result is None:
-            conn.rollback()
-            conn.close()
-            fresh = get_player(user_id)
-            fresh_elapsed = max(0, now() - float(fresh["last_tap_at"] or 0))
-            return jsonify({
-                "ok": False,
-                "error": "cooldown",
-                "remaining": round(max(0, cd - fresh_elapsed), 2),
-                "tap_cd": round(cd, 2)
-            }), 429
-
-        conn.commit()
-        conn.close()
-
-    except Exception as error:
-        conn.rollback()
-        conn.close()
-        print("DATABASE ERROR:", repr(error))
-        return jsonify({"ok": False, "error": "database"}), 500
-
-    player = get_player(user_id)
-    return jsonify({
-        "ok": True,
-        "reward": round(reward, 4),
-        "gem_drop": gem_drop,
-        "doubled": doubled,
-        "x5": x5,
-        "tap_cd": round(cd, 2),
-        "player": serialize(player)
-    })
-
-# =========================
-# UPGRADES LOGIC
-# =========================
-UPGRADE_COSTS = {
-    "tap_cd": lambda r: 10 * (1.75 ** r["tap_cd_level"]),
-    "income": lambda r: 15 * (1.35 ** r["income_level"]),
-    "energy": lambda r: 200 * (1.70 ** r["energy_level"]),
-    "regen": lambda r: 100 * (1.65 ** r["regen_level"]),
-    "double": lambda r: 25 * (3 ** r["double_level"]),
-    "multiplier": lambda r: 50 * (2 ** r["multiplier_level"]),
-    "gem_income": lambda r: 100 * (1.8 ** r["gem_income_level"])
-}
-
-LEVEL_COLUMNS = {
-    "tap_cd": "tap_cd_level", "income": "income_level", "energy": "energy_level",
-    "regen": "regen_level", "double": "double_level", "multiplier": "multiplier_level",
-    "gem_income": "gem_income_level"
-}
-
-def upgrade_currency(kind):
-    return "gems" if kind in {"double", "multiplier", "gem_income"} else "dollars"
-
-def upgrade_max_level(kind):
-    if kind == "tap_cd": return 19
-    if kind == "double": return 50
-    if kind == "regen": return 99
-    return None
 
 @app.get("/api/upgrades")
 def upgrades():
