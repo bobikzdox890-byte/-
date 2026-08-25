@@ -57,7 +57,7 @@ function toast(message) {
 }
 
 /* =========================
-   STATE
+   STATE & API
 ========================= */
 let state = null;
 let cooldownTimer = null;
@@ -65,9 +65,7 @@ let cooldownEnd = 0;
 let tapBusy = false;
 let fingerDown = false;
 
-/* =========================
-   API
-========================= */
+// Автоматический адрес API, чтобы фронтенд и бэкенд на Render никогда не теряли друг друга
 const API = window.location.origin;
 
 async function api(url, options = {}) {
@@ -297,6 +295,7 @@ tapButton.addEventListener("pointerdown", async (event) => {
     }
 
   } finally {
+    // ЖЕСТКО ИСПРАВЛЕНО: Теперь кликер разблокируется всегда, даже если сервер выдал ошибку
     tapBusy = false;
   }
 }, { passive: false });
@@ -398,5 +397,4 @@ function gemsPanel() {
   $("panel-content").innerHTML = `
     <h2>💎 G3MS</h2>
     <div class="blue-menu">
-      <button onclick="buy('double')">⚡ Дабл тап <small>💎 ${doubleCost.toFixed(0)}</small></button>
-      
+        
