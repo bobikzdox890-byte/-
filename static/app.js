@@ -114,6 +114,10 @@ function startCooldown(seconds) {
   cooldownTimer = setInterval(updateCooldown, 20);
 }
 
+function findPanelElement() {
+  return $("panel") || document.querySelector(".panel");
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const data = await api(`/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`);
   if (data && data.ok) {
@@ -125,13 +129,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const tapButton = $("tap-button");
   if (tapButton) {
-    
-    // Мгновенный тач-клик на мобильном без выделения и задержек
     const handleTapStart = async (event) => {
       if (event.cancelable) event.preventDefault();
-      
-      // Кнопка визуально "утопилась"
-      tapButton.classList.add("pressed"); 
+      tapButton.classList.add("pressed"); // Мгновенное сжатие
       
       if (tapBusy) return;
       tapBusy = true;
@@ -162,9 +162,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const reward = document.createElement("div");
         reward.className = "reward-float";
         reward.textContent = `+${Number(res.reward).toFixed(2)}`;
-        reward.style.left = `${clientX + (Math.random() * 80 - 40)}px`;
-        reward.style.top = `${clientY + (Math.random() * 60 - 30)}px`;
-        const floatLayer = $("float-layer");
+        reward.style.left = `${clientX + (Math.random() * 60 - 30)}px`;
+        reward.style.top = `${clientY + (Math.random() * 40 - 20)}px`;
+        const floatLayer = $("float-layer") || document.querySelector("#float-layer");
         if (floatLayer) floatLayer.appendChild(reward);
         setTimeout(() => { reward.remove(); }, 850);
 
@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           bonus.textContent = bonusText;
           bonus.style.left = `${20 + Math.random() * (Math.max(20, window.innerWidth - 150) - 20)}px`;
           bonus.style.top = `${100 + Math.random() * (Math.max(100, window.innerHeight - 210) - 100)}px`;
-          const bonusLayer = $("bonus-layer");
+          const bonusLayer = $("bonus-layer") || document.querySelector("#bonus-layer");
           if (bonusLayer) bonusLayer.appendChild(bonus);
           setTimeout(() => { bonus.remove(); }, 850);
         }
@@ -186,23 +186,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const handleTapEnd = (event) => {
       if (event.cancelable) event.preventDefault();
-      // Отпустил палец — кнопка вернулась обратно
-      tapButton.classList.remove("pressed"); 
+      tapButton.classList.remove("pressed"); // Мгновенный отскок
     };
 
-    // Вешаем мобильные тачи
     tapButton.addEventListener("touchstart", handleTapStart, { passive: false });
     tapButton.addEventListener("touchend", handleTapEnd, { passive: false });
     tapButton.addEventListener("touchcancel", handleTapEnd, { passive: false });
     
-    // Подстраховка для мышки ПК
     tapButton.addEventListener("mousedown", handleTapStart);
     tapButton.addEventListener("mouseup", handleTapEnd);
     tapButton.addEventListener("mouseleave", handleTapEnd);
   }
 
-  const panel = $("panel");
-  const closePanel = $("close-panel");
+  const panel = findPanelElement();
+  const closePanel = $("close-panel") || document.querySelector("#close-panel");
   if (closePanel && panel) {
     closePanel.onclick = () => { panel.classList.remove("open"); currentPanelType = null; };
   }
@@ -213,7 +210,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function openPanel(type) {
-  const panel = $("panel");
+  const panel = findPanelElement();
   if (!panel) return;
   panel.classList.add("open");
   currentPanelType = type;
@@ -225,7 +222,7 @@ function openPanel(type) {
 
 async function upgradesPanel() {
   const data = await api(`/api/upgrades?user_id=${encodeURIComponent(uid)}`);
-  const content = $("panel-content");
+  const content = $("panel-content") || document.querySelector("#panel-content");
   if (!content) return;
   if (!data.ok) { content.innerHTML = "<h2>❌ Ошибка загрузки</h2>"; return; }
   
@@ -253,7 +250,7 @@ async function upgradesPanel() {
 
 async function gemsPanel() {
   const data = await api(`/api/upgrades?user_id=${encodeURIComponent(uid)}`);
-  const content = $("panel-content");
+  const content = $("panel-content") || document.querySelector("#panel-content");
   if (!content) return;
   if (!data.ok) { content.innerHTML = "<h2>❌ Ошибка загрузки</h2>"; return; }
 
@@ -274,7 +271,4 @@ async function gemsPanel() {
         <h3>🔥 MULTIPLIER (Множитель)</h3>
         <div class="upgrade-price">${upMult.cost.toFixed(2)} 💎</div>
         <div class="upgrade-level">Уровень: <b>${upMult.level}</b> (Множитель: x${state.income_multiplier})</div>
-        <button style="background:var(--purple)" onclick="buyGemUpgrade('multiplier')">Прокачать</button>
-      </div>
-      <div class="card upgrade-card">
-                               
+                                               
