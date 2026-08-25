@@ -1,11 +1,12 @@
+/* ========================================================
+   БАЗОВЫЕ НАСТРОЙКИ, ПЕРЕМЕННЫЕ И СБРОС СТИЛЕЙ
+   ======================================================== */
 :root {
   --bg: #040509;
   --purple: #8a24ff;
   --blue: #00d2ff;
   --text: #ffffff;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
-body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden; height: 100vh; }
 
 * { 
   box-sizing: border-box; 
@@ -23,8 +24,10 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
   overflow: hidden; 
   height: 100vh; 
+  width: 100vw;
 }
 
+/* ФИРМЕННАЯ НЕОНОВАЯ РАМКА ВОКРУГ ЭКРАНА */
 .neon { 
   position: fixed; 
   inset: 8px; 
@@ -35,25 +38,37 @@ body {
   z-index: 10; 
 }
 
+/* ГЛАВНЫЙ ИГРОВОЙ КОНТЕЙНЕР */
 .container { 
   display: flex; 
   flex-direction: column; 
   height: 100vh; 
-  padding: 25px 20px; 
+  padding: 25px 20px 95px 20px; /* Большой нижний отступ, чтобы кнопка тапа не лезла под меню */
   justify-content: space-between; 
   position: relative; 
   z-index: 1; 
 }
-.neon { position: fixed; inset: 8px; border: 1px solid rgba(170, 70, 255, .3); box-shadow: 0 0 15px rgba(150, 45, 255, .1); border-radius: 18px; pointer-events: none; z-index: 10; }
-.container { display: flex; flex-direction: column; height: 100vh; padding: 25px 20px 45px; justify-content: space-between; position: relative; z-index: 1; }
 
 .header { text-align: center; margin-top: 20px; }
 .score-box { margin-bottom: 5px; }
-@@ -53,38 +20,11 @@
+.currency-label { font-size: 12px; color: #aaa; letter-spacing: 2px; }
+#dollars { font-size: 42px; font-weight: 900; text-shadow: 0 0 15px rgba(0,210,255,0.4); }
+.energy-box { font-size: 14px; font-weight: bold; margin-top: 5px; }
+
+/* ИНДИКАТОР КУЛДАУНА ТАПА */
+#cooldown-indicator { 
+  text-align: center; 
+  padding: 6px 12px; 
+  border-radius: 20px; 
+  font-size: 12px; 
+  font-weight: bold; 
+  width: fit-content; 
+  margin: 10px auto; 
+}
 .cooldown-ready { background: rgba(25, 217, 107, 0.15); color: #19d96b; }
 .cooldown-active { background: rgba(233, 35, 63, 0.15); color: #e9233f; }
 
-/* КНОПКА ТАПА ПО ЦЕНТРУ */
+/* КНОПКА ТАПА ПО ЦЕНТРУ (МГНОВЕННАЯ СКОРОСТЬ) */
 #tap-area { 
   position: absolute; 
   inset: 0; 
@@ -74,36 +89,43 @@ body {
   align-items: center; 
   justify-content: center; 
   cursor: pointer; 
-  transition: transform 0.05s, box-shadow 0.1s; 
   position: relative; 
-  outline: none;
+  outline: none; 
+  transition: none !important; /* Убираем задержки анимации */
 }
 
-/* Эффект зажатия кнопки: нажал — утопилась, отпустил — вернулась */
+/* Мгновенная реакция кнопки на клик */
 #tap-button:active, #tap-button.pressed { 
-  transform: scale(0.93); 
-  box-shadow: 0 0 20px rgba(138, 36, 255, 0.2), inset 0 0 30px rgba(138, 36, 255, 0.7);
+  transform: scale(0.93) !important; 
+  box-shadow: 0 0 20px rgba(138, 36, 255, 0.2), inset 0 0 30px rgba(138, 36, 255, 0.7) !important; 
+  transition: none !important; 
 }
-#tap-area { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 5; }
-#tap-button { width: 200px; height: 200px; border-radius: 50%; border: none; background: radial-gradient(circle, #25094d 0%, #0d021a 100%); box-shadow: 0 0 40px rgba(138, 36, 255, 0.3), inset 0 0 20px rgba(138, 36, 255, 0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; outline: none; transition: none !important; }
-
-/* Мгновенная реакция и удержание */
-#tap-button:active, #tap-button.pressed { transform: scale(0.93) !important; box-shadow: 0 0 20px rgba(138, 36, 255, 0.2), inset 0 0 30px rgba(138, 36, 255, 0.7) !important; transition: none !important; }
 #tap-button.cooldown { opacity: 0.6; filter: grayscale(0.5); pointer-events: none; }
 .tap-inner { font-size: 28px; font-weight: 900; color: #fff; text-shadow: 0 0 10px #8a24ff; }
 
-@@ -93,48 +33,14 @@
+/* ВЫЛЕТАЮЩИЕ НАГРАДЫ */
+#float-layer, #bonus-layer { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+.reward-float { position: absolute; color: var(--blue); font-weight: bold; font-size: 24px; animation: floatUp 0.85s ease-out forwards; text-shadow: 0 2px 10px rgba(0,210,255,0.6); }
 .bonus-float { position: absolute; color: #ffdd00; font-weight: 900; font-size: 20px; animation: floatUp 0.85s ease-out forwards; text-shadow: 0 2px 10px rgba(255,221,0,0.6); }
 @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100px) scale(0.8); opacity: 0; } }
 
-/* МЕНЮ КНОПОК */
+/* ИСПРАВЛЕННЫЙ И ФИКСИРОВАННЫЙ НИЖНИЙ НАВИГАЦИОННЫЙ БЛОК */
 .bottom { 
   display: grid; 
   grid-template-columns: repeat(4, 1fr); 
   gap: 8px; 
-  margin-bottom: 10px; 
+  position: fixed; 
+  bottom: 22px; /* Четкая посадка внутри неоновой рамки */
+  left: 22px;
+  right: 22px;
   z-index: 15; 
+  background: rgba(4, 5, 9, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 4px;
+  border-radius: 14px;
 }
+
 .bottom button { 
   background: rgba(255,255,255,0.04); 
   border: 1px solid rgba(255,255,255,0.06); 
@@ -119,18 +141,14 @@ body {
   background: rgba(138, 36, 255, 0.2); 
   border-color: var(--purple); 
 }
-/* ИСПРАВЛЕННЫЙ ОТСТУП НИЖНЕЙ ПАНЕЛИ — ОНА ТЕПЕРЬ ВНУТРИ РАМКИ */
-.bottom { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 5px; position: relative; bottom: 5px; z-index: 15; }
-.bottom button { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); padding: 12px 5px; border-radius: 12px; color: #fff; font-size: 11px; font-weight: bold; cursor: pointer; transition: background 0.1s; }
-.bottom button:active { background: rgba(138, 36, 255, 0.2); border-color: var(--purple); }
 
-/* ВЫЕЗЖАЮЩАЯ ШТОРКА (ФИКС КЛИКОВ) */
+/* ВЫЕЗЖАЮЩАЯ ШТОРКА (МЕНЮ) */
 .panel { 
   position: fixed; 
   left: 0; 
   right: 0; 
   bottom: 0; 
-  height: 75vh; 
+  height: 78vh; 
   padding: 45px 20px 20px; 
   background: #07080d; 
   border-top: 2px solid var(--purple); 
@@ -139,16 +157,119 @@ body {
   transition: transform .25s ease, visibility .25s ease; 
   z-index: 100; 
   overflow-y: auto; 
-  visibility: hidden; /* Когда закрыта, полностью прозрачна для кликов */
+  visibility: hidden; 
 }
-.panel.open { transform: translateY(0); visibility: visible; }
-/* ВЫЕЗЖАЮЩАЯ ШТОРКА (ФИКС КЛИКОВ И КЛАССОВ) */
-.panel { position: fixed; left: 0; right: 0; bottom: 0; height: 75vh; padding: 45px 20px 20px; background: #07080d; border-top: 2px solid var(--purple); border-radius: 25px 25px 0 0; transform: translateY(100%); transition: transform .25s ease, visibility .25s ease; z-index: 100; overflow-y: auto; visibility: hidden; }
 .panel.open { transform: translateY(0) !important; visibility: visible !important; }
-#close-panel { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; }
+#close-panel { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; z-index: 110; }
 
+/* КАРТОЧКИ УЛУЧШЕНИЙ */
 .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; margin-bottom: 12px; }
-@@ -150,4 +56,3 @@
-#toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(138,36,255,0.95); padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: bold; opacity: 0; transition: all 0.2s; pointer-events: none; z-index: 200; box-shadow: 0 4px 15px rgba(138,36,255,0.4); }
+.upgrade-card h3 { font-size: 14px; margin-bottom: 4px; color: #fff; }
+.upgrade-price { font-size: 18px; font-weight: 900; color: var(--blue); margin-bottom: 2px; }
+.upgrade-level { font-size: 12px; color: #888; }
+
+#toast { position: fixed; bottom: 95px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(138,36,255,0.95); padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: bold; opacity: 0; transition: all 0.2s; pointer-events: none; z-index: 200; box-shadow: 0 4px 15px rgba(138,36,255,0.4); }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+/* ========================================================
+   ФИКСЫ ДЛЯ ДИНАМИЧЕСКОГО КОНТЕНТА ШТОРКИ (#panel-content)
+   ======================================================== */
+#panel-content {
+  padding-top: 10px;
+}
+
+#panel-content h2 {
+  text-align: center;
+  margin-bottom: 15px;
+  font-size: 22px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* Строки Топа и Лидерборда */
+.leaderboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row { 
+  display: flex !important; 
+  justify-content: space-between !important; 
+  align-items: center !important;
+  padding: 12px 8px !important; 
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important; 
+}
+
+.row span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+.row b {
+  color: var(--purple);
+  text-shadow: 0 0 8px rgba(138, 36, 255, 0.4);
+  font-size: 15px;
+  white-space: nowrap;
+  margin-left: auto !important; /* Намертво прижимает балансы вправо */
+  text-align: right;
+}
+
+/* Красивая неоновая бирюзовая плашка "Ваше место" */
+.current-user-row {
+  background: rgba(0, 210, 255, 0.08) !important;
+  border-left: 4px solid var(--blue) !important;
+  border-bottom: none !important;
+  border-radius: 10px;
+  padding: 12px 14px !important;
+  margin-top: 10px;
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.15);
+}
+
+.current-user-row b {
+  color: var(--blue) !important;
+  text-shadow: 0 0 10px rgba(0, 210, 255, 0.6) !important;
+}
+
+/* Овальный бейдж баланса кристаллов в G3MS магазине */
+.shop-balance-badge {
+  text-align: center;
+  font-size: 15px;
+  color: #aaa;
+  background: rgba(138, 36, 255, 0.12);
+  border: 1px solid rgba(138, 36, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 20px;
+  width: fit-content;
+  margin: 0 auto 20px auto;
+  box-shadow: 0 0 10px rgba(138, 36, 255, 0.2);
+}
+
+.shop-balance-badge b {
+  color: var(--purple);
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+/* Профиль игрока */
+.profile-container {
+  text-align: center;
+  padding: 15px;
+  font-size: 16px;
+  color: #aaa;
+}
+.profile-container p { margin-bottom: 12px; }
+.profile-highlight { color: #fff; font-weight: bold; }
+.profile-highlight-blue { color: var(--blue); font-weight: bold; }
+
+/* Медиа-запрос под мелкие экраны */
+@media (max-width: 360px) {
+  #dollars { font-size: 34px; }
+  #tap-button { width: 180px; height: 180px; }
+  .bottom { bottom: 18px; left: 18px; right: 18px; gap: 4px; }
+  .bottom button { font-size: 10px; padding: 10px 2px; }
+  #panel-content h2 { font-size: 18px; }
+  .row { padding: 10px 4px !important; font-size: 13px; }
+}
