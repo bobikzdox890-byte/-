@@ -65,13 +65,20 @@ def init_db():
     if not url: return
     try:
         conn = db()
+        # Создаем таблицу с DOUBLE PRECISION для высокой точности таймстампов
         conn.execute("""
         CREATE TABLE IF NOT EXISTS players (
             user_id TEXT PRIMARY KEY, username TEXT DEFAULT 'Player', dollars REAL DEFAULT 0, gems REAL DEFAULT 0,
-            energy REAL DEFAULT 100, last_energy_at REAL DEFAULT 0, last_tap_at REAL DEFAULT 0, last_daily REAL DEFAULT 0,
+            energy REAL DEFAULT 100, last_energy_at DOUBLE PRECISION DEFAULT 0, last_tap_at DOUBLE PRECISION DEFAULT 0, last_daily DOUBLE PRECISION DEFAULT 0,
             tap_cd_level INTEGER DEFAULT 0, income_level INTEGER DEFAULT 0, energy_level INTEGER DEFAULT 0, regen_level INTEGER DEFAULT 0,
             double_level INTEGER DEFAULT 0, multiplier_level INTEGER DEFAULT 0, gem_income_level INTEGER DEFAULT 0, referrals INTEGER DEFAULT 0
         )""")
+        
+        # Авто-миграция: если таблица уже была создана старым кодом, принудительно расширяем типы данных
+        conn.execute("ALTER TABLE players ALTER COLUMN last_energy_at TYPE DOUBLE PRECISION")
+        conn.execute("ALTER TABLE players ALTER COLUMN last_tap_at TYPE DOUBLE PRECISION")
+        conn.execute("ALTER TABLE players ALTER COLUMN last_daily TYPE DOUBLE PRECISION")
+        
         conn.commit()
         conn.close()
     except Exception as e:
@@ -138,7 +145,7 @@ def state():
     uname = request.args.get("username", "Player")
     return jsonify({"ok": True, "player": serialize(get_player(uid, uname))})
 
-# НОВЫЙ ДИНАМИЧЕСКИЙ РОУТ ДЛЯ ЛИДЕРБОРДА
+# ЖИВОЙ РОУТ ДЛЯ ЛИДЕРБОРДА
 @app.get("/api/leaderboard")
 def get_leaderboard():
     conn = db()
@@ -207,6 +214,8 @@ def tap():
     row, _, _ = regen_energy(get_player(uid, uname))
     curr = now()
     cd = max(0.05, BASE_TAP_COOLDOWN - 0.05 * row["tap_cd_level"])
+    
+    # Теперь тут DOUBLE PRECISION, вычисления миллисекунд будут абсолютно точными!
     if curr - row["last_tap_at"] < cd: return jsonify({"ok": False, "error": "cooldown", "remaining": cd - (curr - row["last_tap_at"])})
     if row["energy"] < 1: return jsonify({"ok": False, "error": "energy"})
     
@@ -221,6 +230,4 @@ def tap():
         conn.commit()
     finally: conn.close()
     return jsonify({"ok": True, "player": serialize(get_player(uid)), "reward": reward, "x5": is_x5, "doubled": is_double, "gem_drop": is_gem, "tap_cd": cd})
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    if name == "main":app.run(debug=True)
