@@ -55,6 +55,9 @@
   <div id="toast"></div>
 
   <!-- Подключаем скрипт в самом конце сборки DOM -->
-  <script src="/static/app.js?v=4"></script>
+    <!-- Подключаем файлы по очереди, разбивая нагрузку -->
+  <script src="/static/core.js?v=1"></script>
+  <script src="/static/game.js?v=1"></script>
+  <script src="/static/ui.js?v=1"></script>
 </body>
 </html>
