@@ -1,5 +1,5 @@
-// ⚠️ УКАЖИ СВОЮ ССЫЛКУ НА RENDER (ОБЯЗАТЕЛЬНО С HTTPS:// И БЕЗ СЛЭША В КОНЦЕ)
-const RENDER_URL = "https://onrender.com"; 
+// Автоматически берем адрес текущего сайта — никаких блокировок CORS больше не будет!
+const RENDER_URL = window.location.origin; 
 
 window.onerror = function(message, source, lineno) {
   document.body.insertAdjacentHTML(
@@ -35,6 +35,7 @@ let currentPanelType = null;
 
 async function api(url, options = {}) {
   try {
+    // Запросы гарантированно полетят на твой родной сервер Render
     const response = await fetch(RENDER_URL + url, {
       method: options.method || "GET",
       headers: { "Content-Type": "application/json; charset=utf-8" },
