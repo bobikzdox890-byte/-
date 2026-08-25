@@ -1,4 +1,4 @@
-// МОДУЛЬ UI ДЛЯ 8OLLAR TAP — ВЕРСИЯ С ИСПРАВЛЕННЫМ СИНТАКСИСОМ
+// МОДУЛЬ UI ДЛЯ 8OLLAR TAP — ВЕРСИЯ С ТОП-3 И РАСШИРЕННЫМ ПРОФИЛЕМ
 document.addEventListener("DOMContentLoaded", async () => {
   // Загружаем стартовое состояние игрока при входе
   const data = await api(`/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`);
@@ -76,13 +76,15 @@ function openPanel(t) {
   if (t === "upgrades") upgradesPanel(); 
   if (t === "gems") gemsPanel();
   
-  // ТВОЙ ОРИГИНАЛЬНЫЙ ЛИДЕРБОРД С РЕАЛЬНЫМ БАЛАНСОМ И ЗНАКОМ ДОЛЛАРА (БЕЗ НАПЛЫВОВ)
+  // ЛИДЕРБОРД С РАНЖИРОВАНИЕМ КАРТОЧЕК ДЛЯ ТОП-3
   if (t === "rating") {
     $("panel-content").innerHTML = `
       <h2>🏆 Рейтинг Игроков</h2>
       <div class="leaderboard-container">
-        <div class="row"><span>1. Топ Игрок</span><b>999999.00 $</b></div>
-        <div class="row"><span>2. Тестировщик</span><b>50000.00 $</b></div>
+        <div class="row rank-gold"><span>🥇 1. Топ Игрок</span><b>999999.00 $</b></div>
+        <div class="row rank-silver"><span>🥈 2. Тестировщик</span><b>50000.00 $</b></div>
+        <div class="row rank-bronze"><span>🥉 3. Олд Игрок</span><b>25000.00 $</b></div>
+        <div class="row rank-normal"><span>4. КиберТапер</span><b>12000.00 $</b></div>
         <div class="row current-user-row">
           <span>Ваше место:</span><b>${Number(state.dollars).toFixed(2)} $</b>
         </div>
@@ -90,12 +92,26 @@ function openPanel(t) {
     `;
   }
   
+  // ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ С ДОБАВЛЕНИЕМ БАЛАНСОВ И РЕФЕРАЛОВ
   if (t === "profile") {
     $("panel-content").innerHTML = `
       <h2>👤 Профиль Пользователя</h2>
       <div class="profile-container">
-        <p>ID: <span class="profile-highlight">${uid}</span></p>
-        <p>Имя: <span class="profile-highlight-blue">${username}</span></p>
+        <div class="profile-item">
+          <span>Никнейм:</span><span class="profile-value-blue">${username}</span>
+        </div>
+        <div class="profile-item">
+          <span>Telegram ID:</span><span class="profile-value">${uid}</span>
+        </div>
+        <div class="profile-item">
+          <span>Баланс:</span><span class="profile-value-green">${Number(state.dollars).toFixed(2)} $</span>
+        </div>
+        <div class="profile-item">
+          <span>Кристаллы:</span><span class="profile-value-purple">${Number(state.gems).toFixed(0)} 💎</span>
+        </div>
+        <div class="profile-item">
+          <span>Рефералы:</span><span class="profile-value-gold">${state.referrals || 0} чел.</span>
+        </div>
       </div>
     `;
   }
