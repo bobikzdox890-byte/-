@@ -1,366 +1,154 @@
-/* ==========================================
-   БАЗОВЫЕ НАСТРОЙКИ И ПЕРЕМЕННЫЕ
-   ========================================== */
 :root {
-    --bg: #040509;
-    --purple: #8a24ff;
-    --neon-cyan: #00ffcc;
-    --text-main: #ffffff;
-    --text-muted: rgba(255, 255, 255, 0.6);
+  --bg: #040509;
+  --purple: #8a24ff;
+  --blue: #00d2ff;
+  --text: #ffffff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden; height: 100vh; }
+
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  /* Блокируем синее выделение и системные рамки намертво */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    -webkit-tap-highlight-color: transparent; /* Убираем синий квадрат при тапе на мобилках */
-    user-select: none; /* Запрещаем выделение текста в игре */
+body { 
+  background: var(--bg); 
+  color: var(--text); 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+  overflow: hidden; 
+  height: 100vh; 
 }
 
-body {
-    background-color: var(--bg);
-    color: var(--text-main);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    overflow: hidden; /* Запрещаем случайный скролл всей страницы приложения */
-    width: 100vw;
-    height: 100vh;
+.neon { 
+  position: fixed; 
+  inset: 8px; 
+  border: 1px solid rgba(170, 70, 255, .3); 
+  box-shadow: 0 0 15px rgba(150, 45, 255, .1); 
+  border-radius: 18px; 
+  pointer-events: none; 
+  z-index: 10; 
 }
 
-/* ==========================================
-   ИГРОВОЙ КОНТЕЙНЕР
-   ========================================== */
-.game-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    height: 100vh;
-    padding: 40px 20px calc(25px + 80px) 20px; /* Учитываем высоту нижнего меню навигации */
+.container { 
+  display: flex; 
+  flex-direction: column; 
+  height: 100vh; 
+  padding: 25px 20px; 
+  justify-content: space-between; 
+  position: relative; 
+  z-index: 1; 
+}
+.neon { position: fixed; inset: 8px; border: 1px solid rgba(170, 70, 255, .3); box-shadow: 0 0 15px rgba(150, 45, 255, .1); border-radius: 18px; pointer-events: none; z-index: 10; }
+.container { display: flex; flex-direction: column; height: 100vh; padding: 25px 20px 45px; justify-content: space-between; position: relative; z-index: 1; }
+
+.header { text-align: center; margin-top: 20px; }
+.score-box { margin-bottom: 5px; }
+@@ -53,38 +20,11 @@
+.cooldown-ready { background: rgba(25, 217, 107, 0.15); color: #19d96b; }
+.cooldown-active { background: rgba(233, 35, 63, 0.15); color: #e9233f; }
+
+/* КНОПКА ТАПА ПО ЦЕНТРУ */
+#tap-area { 
+  position: absolute; 
+  inset: 0; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  z-index: 5; 
 }
 
-/* Блок баланса */
-.main-balance-container {
-    text-align: center;
-    margin-top: 20px;
+#tap-button { 
+  width: 200px; 
+  height: 200px; 
+  border-radius: 50%; 
+  border: none; 
+  background: radial-gradient(circle, #25094d 0%, #0d021a 100%); 
+  box-shadow: 0 0 40px rgba(138, 36, 255, 0.3), inset 0 0 20px rgba(138, 36, 255, 0.5); 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  cursor: pointer; 
+  transition: transform 0.05s, box-shadow 0.1s; 
+  position: relative; 
+  outline: none;
 }
 
-.balance-label {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    letter-spacing: 2px;
-    margin-bottom: 5px;
+/* Эффект зажатия кнопки: нажал — утопилась, отпустил — вернулась */
+#tap-button:active, #tap-button.pressed { 
+  transform: scale(0.93); 
+  box-shadow: 0 0 20px rgba(138, 36, 255, 0.2), inset 0 0 30px rgba(138, 36, 255, 0.7);
 }
+#tap-area { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 5; }
+#tap-button { width: 200px; height: 200px; border-radius: 50%; border: none; background: radial-gradient(circle, #25094d 0%, #0d021a 100%); box-shadow: 0 0 40px rgba(138, 36, 255, 0.3), inset 0 0 20px rgba(138, 36, 255, 0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; outline: none; transition: none !important; }
 
-.balance-amount {
-    font-size: 2.5rem;
-    font-weight: 800;
-    text-shadow: 0 0 15px rgba(138, 36, 255, 0.6);
-}
+/* Мгновенная реакция и удержание */
+#tap-button:active, #tap-button.pressed { transform: scale(0.93) !important; box-shadow: 0 0 20px rgba(138, 36, 255, 0.2), inset 0 0 30px rgba(138, 36, 255, 0.7) !important; transition: none !important; }
+#tap-button.cooldown { opacity: 0.6; filter: grayscale(0.5); pointer-events: none; }
+.tap-inner { font-size: 28px; font-weight: 900; color: #fff; text-shadow: 0 0 10px #8a24ff; }
 
-/* Главная кнопка-тапалка */
-.tap-button-zone {
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
+@@ -93,48 +33,14 @@
+.bonus-float { position: absolute; color: #ffdd00; font-weight: 900; font-size: 20px; animation: floatUp 0.85s ease-out forwards; text-shadow: 0 2px 10px rgba(255,221,0,0.6); }
+@keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100px) scale(0.8); opacity: 0; } }
 
-.click-button {
-    background: radial-gradient(circle, #1a0b36 0%, #0c041c 100%);
-    border: 4px solid var(--purple);
-    border-radius: 50%;
-    width: 200px;
-    height: 200px;
-    box-shadow: 0 0 30px rgba(138, 36, 255, 0.4), inset 0 0 20px rgba(138, 36, 255, 0.3);
-    cursor: pointer;
-    outline: none;
-    touch-action: manipulation; /* Убирает задержку клика в 300мс на мобильных */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.05s ease-out; /* Нулевая задержка, мгновенный отскок */
+/* МЕНЮ КНОПОК */
+.bottom { 
+  display: grid; 
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 8px; 
+  margin-bottom: 10px; 
+  z-index: 15; 
 }
+.bottom button { 
+  background: rgba(255,255,255,0.04); 
+  border: 1px solid rgba(255,255,255,0.06); 
+  padding: 12px 5px; 
+  border-radius: 12px; 
+  color: #fff; 
+  font-size: 11px; 
+  font-weight: bold; 
+  cursor: pointer; 
+  transition: background 0.1s; 
+}
+.bottom button:active { 
+  background: rgba(138, 36, 255, 0.2); 
+  border-color: var(--purple); 
+}
+/* ИСПРАВЛЕННЫЙ ОТСТУП НИЖНЕЙ ПАНЕЛИ — ОНА ТЕПЕРЬ ВНУТРИ РАМКИ */
+.bottom { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 5px; position: relative; bottom: 5px; z-index: 15; }
+.bottom button { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); padding: 12px 5px; border-radius: 12px; color: #fff; font-size: 11px; font-weight: bold; cursor: pointer; transition: background 0.1s; }
+.bottom button:active { background: rgba(138, 36, 255, 0.2); border-color: var(--purple); }
 
-/* Мгновенное утапливание кнопки */
-.click-button:active {
-    transform: scale(0.92);
-    box-shadow: 0 0 15px rgba(138, 36, 255, 0.6), inset 0 0 30px rgba(138, 36, 255, 0.6);
+/* ВЫЕЗЖАЮЩАЯ ШТОРКА (ФИКС КЛИКОВ) */
+.panel { 
+  position: fixed; 
+  left: 0; 
+  right: 0; 
+  bottom: 0; 
+  height: 75vh; 
+  padding: 45px 20px 20px; 
+  background: #07080d; 
+  border-top: 2px solid var(--purple); 
+  border-radius: 25px 25px 0 0; 
+  transform: translateY(100%); 
+  transition: transform .25s ease, visibility .25s ease; 
+  z-index: 100; 
+  overflow-y: auto; 
+  visibility: hidden; /* Когда закрыта, полностью прозрачна для кликов */
 }
+.panel.open { transform: translateY(0); visibility: visible; }
+/* ВЫЕЗЖАЮЩАЯ ШТОРКА (ФИКС КЛИКОВ И КЛАССОВ) */
+.panel { position: fixed; left: 0; right: 0; bottom: 0; height: 75vh; padding: 45px 20px 20px; background: #07080d; border-top: 2px solid var(--purple); border-radius: 25px 25px 0 0; transform: translateY(100%); transition: transform .25s ease, visibility .25s ease; z-index: 100; overflow-y: auto; visibility: hidden; }
+.panel.open { transform: translateY(0) !important; visibility: visible !important; }
+#close-panel { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; }
 
-.coin-symbol {
-    font-size: 5rem;
-    font-weight: 900;
-    color: #fff;
-    text-shadow: 0 0 10px var(--purple);
-}
-
-/* Энергия */
-.energy-container {
-    width: 100%;
-    max-width: 320px;
-}
-
-.energy-text {
-    font-size: 0.9rem;
-    margin-bottom: 6px;
-    text-align: center;
-}
-
-.energy-bar-bg {
-    background: rgba(255, 255, 255, 0.05);
-    height: 12px;
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid rgba(138, 36, 255, 0.2);
-}
-
-.energy-bar-fill {
-    background: linear-gradient(90deg, var(--purple) 0%, var(--neon-cyan) 100%);
-    height: 100%;
-    width: 100%; /* Управляется через game.js */
-    box-shadow: 0 0 8px var(--purple);
-    transition: width 0.1s linear;
-}
-
-/* ==========================================
-   ВСПЛЫВАЮЩИЕ НАГРАДЫ (FLOAT-LAYER)
-   ========================================== */
-.float-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none; /* Чтобы сквозь цифры можно было тапать */
-    z-index: 10;
-}
-
-.float-score {
-    position: absolute;
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: var(--neon-cyan);
-    text-shadow: 0 0 8px rgba(0, 255, 204, 0.8);
-    animation: floatUp 0.6s ease-out forwards;
-}
-
-@keyframes floatUp {
-    0% { transform: translateY(0) scale(1); opacity: 1; }
-    100% { transform: translateY(-80px) scale(0.8); opacity: 0; }
-}
-
-/* ==========================================
-   НИЖНЕЕ МЕНЮ НАВИГАЦИИ (.neon)
-   ========================================== */
-.bottom-navigation {
-    position: fixed;
-    bottom: 25px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 400px;
-    height: 60px;
-    background: rgba(4, 5, 9, 0.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 16px;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    z-index: 100;
-}
-
-.bottom-navigation.neon {
-    border: 1px solid var(--purple);
-    box-shadow: 0 0 15px rgba(138, 36, 255, 0.4);
-}
-
-.nav-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 10px;
-    transition: all 0.2s ease;
-}
-
-.nav-btn.active, .nav-btn:shadow {
-    color: #fff;
-    text-shadow: 0 0 8px var(--purple);
-}
-
-/* ==========================================
-   ВЫЕЗЖАЮЩАЯ ШТОРКА (PANEL) И ФИКСЫ ИНТЕРФЕЙСА
-   ========================================== */
-.panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100vw;
-    height: 75vh;
-    background: #060810;
-    border-top: 2px solid var(--purple);
-    border-radius: 24px 24px 0 0;
-    box-shadow: 0 -5px 25px rgba(138, 36, 255, 0.3);
-    z-index: 200;
-    display: flex;
-    flex-direction: column;
-    /* Логика программного скрытия, чтобы не блокировать экран */
-    visibility: hidden;
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94), visibility 0.3s;
-}
-
-.panel.open {
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.panel-content {
-    flex-grow: 1;
-    overflow-y: auto; /* Скролл только внутри контента шторки */
-    padding: 0 20px;
-}
-
-.close-panel-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--text-muted);
-    padding: 12px;
-    margin: 15px 20px calc(15px + cubic-bezier(0,0,0,0)); /* Безопасная зона */
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-/* Фикс шапки магазина G3MS */
-.shop-header, .panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    padding: 20px 20px 15px 20px;
-    box-sizing: border-box;
-    border-bottom: 1px solid rgba(138, 36, 255, 0.15);
-}
-
-.shop-title {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.shop-balance {
-    font-size: 0.9rem;
-    color: #fff;
-    background: rgba(138, 36, 255, 0.15);
-    padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px solid rgba(138, 36, 255, 0.4);
-    box-shadow: 0 0 10px rgba(138, 36, 255, 0.25);
-    white-space: nowrap;
-}
-
-/* Фикс Сетки Топа / Рейтинга игроков */
-.leaderboard-list {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding-top: 15px;
-}
-
-.leaderboard-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    font-size: 0.95rem;
-    position: relative;
-}
-
-.player-name {
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 55%;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-/* Неоновые направляющие точки */
-.leaderboard-row::after {
-    content: "";
-    flex-grow: 1;
-    border-bottom: 2px dotted rgba(138, 36, 255, 0.2);
-    margin: 0 10px;
-    position: relative;
-    top: -3px;
-}
-
-.player-score {
-    font-weight: 700;
-    color: var(--purple);
-    text-shadow: 0 0 8px rgba(138, 36, 255, 0.5);
-    white-space: nowrap;
-    text-align: right;
-}
-
-/* Подсветка виджета текущего игрока "Ваше место" */
-.leaderboard-row.current-user {
-    background: rgba(138, 36, 255, 0.12);
-    border: 1px solid rgba(138, 36, 255, 0.4);
-    border-radius: 12px;
-    padding: 10px 14px;
-    margin-top: 5px;
-    box-shadow: 0 0 15px rgba(138, 36, 255, 0.2);
-}
-
-.leaderboard-row.current-user::after {
-    display: none; /* Убираем точки внутри плашки юзера */
-}
-
-.leaderboard-row.current-user .player-name {
-    font-weight: 700;
-}
-
-.leaderboard-row.current-user .player-score {
-    color: var(--neon-cyan); /* Сочный бирюзовый контраст для баланса юзера */
-    text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
-}
-
-.empty-notice {
-    text-align: center;
-    color: var(--text-muted);
-    margin-top: 30px;
-    font-style: italic;
-}
-
-/* Скроллбар для шторки меню */
-.panel-content::-webkit-scrollbar {
-    width: 4px;
-}
-.panel-content::-webkit-scrollbar-thumb {
-    background: var(--purple);
-    border-radius: 2px;
-}
-
-/* Адаптив для маленьких экранов */
-@media (max-width: 360px) {
-    .shop-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-    }
-    .click-button {
-        width: 170px;
-        height: 170px;
-    }
-    .coin-symbol {
-        font-size: 4rem;
-    }
-}
+.card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; margin-bottom: 12px; }
+@@ -150,4 +56,3 @@
+#toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(138,36,255,0.95); padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: bold; opacity: 0; transition: all 0.2s; pointer-events: none; z-index: 200; box-shadow: 0 4px 15px rgba(138,36,255,0.4); }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
