@@ -4,11 +4,44 @@
   --blue: #00d2ff;
   --text: #ffffff;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
-body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden; height: 100vh; }
 
-.neon { position: fixed; inset: 8px; border: 1px solid rgba(170, 70, 255, .3); box-shadow: 0 0 15px rgba(150, 45, 255, .1); border-radius: 18px; pointer-events: none; z-index: 10; }
-.container { display: flex; flex-direction: column; height: 100vh; padding: 25px 20px; justify-content: space-between; position: relative; z-index: 1; }
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  /* Блокируем синее выделение и системные рамки намертво */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body { 
+  background: var(--bg); 
+  color: var(--text); 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+  overflow: hidden; 
+  height: 100vh; 
+}
+
+.neon { 
+  position: fixed; 
+  inset: 8px; 
+  border: 1px solid rgba(170, 70, 255, .3); 
+  box-shadow: 0 0 15px rgba(150, 45, 255, .1); 
+  border-radius: 18px; 
+  pointer-events: none; 
+  z-index: 10; 
+}
+
+.container { 
+  display: flex; 
+  flex-direction: column; 
+  height: 100vh; 
+  padding: 25px 20px; 
+  justify-content: space-between; 
+  position: relative; 
+  z-index: 1; 
+}
 
 .header { text-align: center; margin-top: 20px; }
 .score-box { margin-bottom: 5px; }
@@ -20,10 +53,39 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .cooldown-ready { background: rgba(25, 217, 107, 0.15); color: #19d96b; }
 .cooldown-active { background: rgba(233, 35, 63, 0.15); color: #e9233f; }
 
-#tap-area { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 5; }
-#tap-button { width: 200px; height: 200px; border-radius: 50%; border: none; background: radial-gradient(circle, #25094d 0%, #0d021a 100%); box-shadow: 0 0 40px rgba(138, 36, 255, 0.3), inset 0 0 20px rgba(138, 36, 255, 0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.05s, box-shadow 0.1s; position: relative; }
-#tap-button.pressed { transform: scale(0.94); }
-#tap-button.cooldown { opacity: 0.6; filter: grayscale(0.5); }
+/* КНОПКА ТАПА ПО ЦЕНТРУ */
+#tap-area { 
+  position: absolute; 
+  inset: 0; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  z-index: 5; 
+}
+
+#tap-button { 
+  width: 200px; 
+  height: 200px; 
+  border-radius: 50%; 
+  border: none; 
+  background: radial-gradient(circle, #25094d 0%, #0d021a 100%); 
+  box-shadow: 0 0 40px rgba(138, 36, 255, 0.3), inset 0 0 20px rgba(138, 36, 255, 0.5); 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  cursor: pointer; 
+  transition: transform 0.05s, box-shadow 0.1s; 
+  position: relative; 
+  outline: none;
+}
+
+/* Эффект зажатия кнопки: нажал — утопилась, отпустил — вернулась */
+#tap-button:active, #tap-button.pressed { 
+  transform: scale(0.93); 
+  box-shadow: 0 0 20px rgba(138, 36, 255, 0.2), inset 0 0 30px rgba(138, 36, 255, 0.7);
+}
+
+#tap-button.cooldown { opacity: 0.6; filter: grayscale(0.5); pointer-events: none; }
 .tap-inner { font-size: 28px; font-weight: 900; color: #fff; text-shadow: 0 0 10px #8a24ff; }
 
 #float-layer, #bonus-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
@@ -31,11 +93,47 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .bonus-float { position: absolute; color: #ffdd00; font-weight: 900; font-size: 20px; animation: floatUp 0.85s ease-out forwards; text-shadow: 0 2px 10px rgba(255,221,0,0.6); }
 @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100px) scale(0.8); opacity: 0; } }
 
-.bottom { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; z-index: 15; }
-.bottom button { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); padding: 12px 5px; border-radius: 12px; color: #fff; font-size: 11px; font-weight: bold; cursor: pointer; transition: background 0.1s; }
-.bottom button:active { background: rgba(138, 36, 255, 0.2); border-color: var(--purple); }
+/* МЕНЮ КНОПОК */
+.bottom { 
+  display: grid; 
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 8px; 
+  margin-bottom: 10px; 
+  z-index: 15; 
+}
+.bottom button { 
+  background: rgba(255,255,255,0.04); 
+  border: 1px solid rgba(255,255,255,0.06); 
+  padding: 12px 5px; 
+  border-radius: 12px; 
+  color: #fff; 
+  font-size: 11px; 
+  font-weight: bold; 
+  cursor: pointer; 
+  transition: background 0.1s; 
+}
+.bottom button:active { 
+  background: rgba(138, 36, 255, 0.2); 
+  border-color: var(--purple); 
+}
 
-.panel { position: fixed; left: 0; right: 0; bottom: 0; height: 75vh; padding: 45px 20px 20px; background: #07080d; border-top: 2px solid var(--purple); border-radius: 25px 25px 0 0; transform: translateY(100%); transition: transform .25s ease, visibility .25s ease; z-index: 100; overflow-y: auto; visibility: hidden; }
+/* ВЫЕЗЖАЮЩАЯ ШТОРКА (ФИКС КЛИКОВ) */
+.panel { 
+  position: fixed; 
+  left: 0; 
+  right: 0; 
+  bottom: 0; 
+  height: 75vh; 
+  padding: 45px 20px 20px; 
+  background: #07080d; 
+  border-top: 2px solid var(--purple); 
+  border-radius: 25px 25px 0 0; 
+  transform: translateY(100%); 
+  transition: transform .25s ease, visibility .25s ease; 
+  z-index: 100; 
+  overflow-y: auto; 
+  visibility: hidden; /* Когда закрыта, полностью прозрачна для кликов */
+}
 .panel.open { transform: translateY(0); visibility: visible; }
 #close-panel { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; }
 
@@ -47,6 +145,9 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .upgrade-buttons button, .upgrade-card > button { border: none; padding: 10px; border-radius: 10px; color: #fff; font-weight: bold; cursor: pointer; }
 .upgrade-max { background: #333 !important; color: #777 !important; border: none; padding: 10px; border-radius: 10px; width: 100%; font-weight: bold; }
 
+.blue-menu { display: flex; flex-direction: column; gap: 4px; }
+
 #toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(138,36,255,0.95); padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: bold; opacity: 0; transition: all 0.2s; pointer-events: none; z-index: 200; box-shadow: 0 4px 15px rgba(138,36,255,0.4); }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  
