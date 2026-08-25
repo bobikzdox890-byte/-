@@ -1,216 +1,60 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
-
 <head>
-
-  <meta charset="utf-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
-  >
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>8OLLAR Tap</title>
-
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='style.css') }}"
-  >
-
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
+  <link rel="stylesheet" href="/static/style.css?v=4">
+  <script src="https://telegram.org"></script>
 </head>
-
-
 <body>
-
   <div class="neon"></div>
-
-
-  <!-- =========================
-       HEADER
-  ========================= -->
-
-  <header>
-
-    <div class="balance">
-
-      <span>8OLLAR</span>
-
-      <b id="dollars">
-        0.00
-      </b>
-
+  
+  <div class="container">
+    <div class="header">
+      <div class="score-box">
+        <span class="currency-label">8OLLAR</span>
+        <h1 id="dollars">0.00</h1>
+      </div>
+      <div class="energy-box">
+        ⚡ <span id="energy">100</span> / <span id="max-energy">100</span>
+      </div>
     </div>
 
-
-    <div class="energy">
-
-      ⚡
-
-      <b id="energy">
-        100
-      </b>
-
-      /
-
-      <span id="max-energy">
-        100
-      </span>
-
+    <!-- Область индикации кулдауна -->
+    <div id="cooldown-indicator" class="cooldown-ready">
+      STATUS: <span id="cooldown-time">READY</span>
     </div>
 
-  </header>
-
-
-  <!-- =========================
-       COOLDOWN
-  ========================= -->
-
-  <div
-    id="cooldown-indicator"
-    class="cooldown-ready"
-  >
-
-    <div id="cooldown-label">
-      COOLDOWN
+    <!-- Основная кликабельная зона -->
+    <div id="tap-area">
+      <button id="tap-button" class="ready">
+        <div class="tap-inner">TAP</div>
+      </button>
     </div>
 
-    <div id="cooldown-time">
-      READY
-    </div>
+    <!-- Слои для анимаций вылетающих цифр -->
+    <div id="float-layer"></div>
+    <div id="bonus-layer"></div>
 
+    <!-- Нижнее меню навигации -->
+    <div class="bottom">
+      <button data-panel="upgrades">⚙️ Апгрейды</button>
+      <button data-panel="gems">💎 G3MS</button>
+      <button data-panel="rating">🏆 Топ</button>
+      <button data-panel="profile">👤 Профиль</button>
+    </div>
   </div>
 
-
-  <!-- =========================
-       TAP AREA
-  ========================= -->
-
-  <main id="tap-area">
-
-    <button
-      id="tap-button"
-      aria-label="Tap"
-      type="button"
-    ></button>
-
-
-    <div
-      class="tap-hint"
-      aria-hidden="true"
-    >
-      TAP
-    </div>
-
-  </main>
-
-
-  <!-- =========================
-       REWARD
-  ========================= -->
-
-  <div
-    id="float-layer"
-    aria-hidden="true"
-  ></div>
-
-
-  <!-- =========================
-       BONUS
-  ========================= -->
-
-  <div
-    id="bonus-layer"
-    aria-hidden="true"
-  ></div>
-
-
-  <!-- =========================
-       BOTTOM NAVIGATION
-  ========================= -->
-
-  <nav
-    class="bottom"
-    aria-label="Game navigation"
-  >
-
-    <button
-      type="button"
-      data-panel="upgrades"
-    >
-      ⚙️
-      <span>Апгрейды</span>
-    </button>
-
-
-    <button
-      type="button"
-      data-panel="gems"
-    >
-      💎
-      <span style="color: #9d42ff;">G3MS</span>
-
-    <button
-      type="button"
-      data-panel="rating"
-    >
-      🏆
-      <span>Рейтинг</span>
-    </button>
-
-
-    <button
-      type="button"
-      data-panel="profile"
-    >
-      👤
-      <span>Профиль</span>
-    </button>
-
-  </nav>
-
-
-  <!-- =========================
-       PANEL
-  ========================= -->
-
-  <aside
-    id="panel"
-    class="panel"
-    aria-hidden="true"
-  >
-
-    <button
-      id="close-panel"
-      class="close"
-      type="button"
-      aria-label="Закрыть"
-    >
-      ✕
-    </button>
-
-
+  <!-- Всплывающее окно (Шторка) -->
+  <div id="panel" class="panel">
+    <button id="close-panel">✕</button>
     <div id="panel-content"></div>
+  </div>
 
-  </aside>
+  <div id="toast"></div>
 
-
-  <!-- =========================
-       TOAST
-  ========================= -->
-
-  <div
-    id="toast"
-    role="status"
-    aria-live="polite"
-  ></div>
-
-
-  <script
-    src="{{ url_for('static', filename='app.js') }}"
-  ></script>
-
+  <!-- Подключаем скрипт в самом конце сборки DOM -->
+  <script src="/static/app.js?v=4"></script>
 </body>
-
-    </html>
+</html>
