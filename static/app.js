@@ -1,3 +1,6 @@
+// ⚠️ УКАЖИ ЗДЕСЬ СВОЮ ССЫЛКУ НА RENDER (ОБЯЗАТЕЛЬНО С HTTPS:// И БЕЗ СЛЭША В КОНЦЕ)
+const RENDER_URL = "https://83s8tvz3me.onrender.com"; 
+
 window.onerror = function(message, source, lineno) {
   document.body.insertAdjacentHTML(
     "afterbegin",
@@ -30,11 +33,10 @@ let cooldownEnd = 0;
 let tapBusy = false;
 let currentPanelType = null;
 
-const API = window.location.origin;
-
 async function api(url, options = {}) {
   try {
-    const response = await fetch(API + url, {
+    // Теперь запросы гарантированно полетят на твой сервер Render
+    const response = await fetch(RENDER_URL + url, {
       method: options.method || "GET",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: options.body
@@ -87,8 +89,7 @@ function setReady() {
   cooldownEnd = 0;
   const button = $("tap-button");
   if (button) {
-    button.classList.remove("cooldown");
-    button.classList.add("ready");
+    button.className = "ready";
   }
   updateCooldownIndicator(0);
 }
@@ -101,8 +102,7 @@ function startCooldown(seconds) {
   cooldownEnd = Date.now() + value * 1000;
   const button = $("tap-button");
   if (button) {
-    button.classList.remove("ready");
-    button.classList.add("cooldown");
+    button.className = "cooldown";
   }
 
   function updateCooldown() {
@@ -131,7 +131,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (tapButton) {
     const handleTapStart = async (event) => {
       if (event.cancelable) event.preventDefault();
-      tapButton.classList.add("pressed"); // Мгновенное сжатие
+      
+      // Нулевой лаг отклика кнопки
+      tapButton.className = "pressed"; 
       
       if (tapBusy) return;
       tapBusy = true;
@@ -186,7 +188,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const handleTapEnd = (event) => {
       if (event.cancelable) event.preventDefault();
-      tapButton.classList.remove("pressed"); // Мгновенный отскок
+      // Мгновенный отскок назад
+      tapButton.className = "ready"; 
     };
 
     tapButton.addEventListener("touchstart", handleTapStart, { passive: false });
@@ -270,5 +273,4 @@ async function gemsPanel() {
       <div class="card upgrade-card">
         <h3>🔥 MULTIPLIER (Множитель)</h3>
         <div class="upgrade-price">${upMult.cost.toFixed(2)} 💎</div>
-        <div class="upgrade-level">Уровень: <b>${upMult.level}</b> (Множитель: x${state.income_multiplier})</div>
-                                               
+        
