@@ -68,7 +68,7 @@ let fingerDown = false;
 /* =========================
    API
 ========================= */
-const API = "https://onrender.com";
+const API = window.location.origin;
 
 async function api(url, options = {}) {
   try {
