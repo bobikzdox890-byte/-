@@ -1,17 +1,15 @@
 import os
-import time
 import random
 from datetime import datetime, timezone
-
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
+# Отключаем ASCII-кодирование: Flask будет отдавать чистый UTF-8 без иероглифов на Render
 app.json.ensure_ascii = False
 
 # =========================
@@ -48,11 +46,16 @@ BASE_TAP_REWARD = 1
 X5_CHANCE = 0.10
 
 # =========================
-# DATABASE INIT
+# DATABASE INIT (Защищенная версия)
 # =========================
 def init_db():
-    conn = db()
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        print("CRITICAL WARNING: DATABASE_URL variable is missing in settings!")
+        return
+        
     try:
+        conn = db()
         conn.execute("""
         CREATE TABLE IF NOT EXISTS players (
             user_id TEXT PRIMARY KEY,
@@ -74,9 +77,12 @@ def init_db():
         )
         """)
         conn.commit()
-    finally:
         conn.close()
+        print("Database successfully initialized.")
+    except Exception as e:
+        print("DATABASE INIT ERROR:", repr(e))
 
+# Время строго возвращает независимый UTC Unix Timestamp
 def now():
     return datetime.now(timezone.utc).timestamp()
 
@@ -86,9 +92,7 @@ def now():
 def get_player(user_id, username="Player"):
     conn = db()
     try:
-        row = conn.execute(
-            "SELECT * FROM players WHERE user_id=%s", (str(user_id),)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM players WHERE user_id=%s", (str(user_id),)).fetchone()
 
         if row is None:
             t = now()
@@ -97,9 +101,7 @@ def get_player(user_id, username="Player"):
                 VALUES(%s, %s, %s, %s, %s)
             """, (str(user_id), username or "Player", BASE_ENERGY_MAX, t, 0))
             conn.commit()
-            row = conn.execute(
-                "SELECT * FROM players WHERE user_id=%s", (str(user_id),)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM players WHERE user_id=%s", (str(user_id),)).fetchone()
         return row
     finally:
         conn.close()
@@ -329,17 +331,4 @@ def upgrades():
             "currency": upgrade_currency(kind),
             "max_level": max_level,
             "maxed": (max_level is not None and level >= max_level)
-        }
-    return jsonify({"ok": True, "upgrades": result})
-
-@app.post("/api/upgrade")
-def upgrade():
-    payload = request.get_json(silent=True) or {}
-    user_id = str(payload.get("user_id", "local-demo"))
-    kind = payload.get("kind")
-
-    if kind not in UPGRADE_COSTS:
-        return jsonify({"ok": False, "error": "unknown upgrade"}), 400
-
-    row = get_player(user_id)
-            
+    }
