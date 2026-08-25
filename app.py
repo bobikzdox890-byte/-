@@ -6,10 +6,16 @@ from psycopg2.extras import RealDictCursor
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 
-app = Flask(__name__)
+# Явно прописываем пути к папкам для хостинга Render, чтобы он не выводил README.md
+app = Flask(
+    __name__,
+    template_folder="templates",
+    static_folder="static",
+    static_url_path="/static"
+)
 CORS(app)
 
-# Отключаем ASCII-кодирование: Flask будет отдавать чистый UTF-8 без иероглифов на Render
+# Принудительно отключаем ASCII: Flask будет отдавать чистый UTF-8 без иероглифов на Render
 app.json.ensure_ascii = False
 
 # =========================
@@ -327,8 +333,4 @@ def upgrades():
         max_level = upgrade_max_level(kind)
         result[kind] = {
             "level": level,
-            "cost": round(cost_func(row), 2),
-            "currency": upgrade_currency(kind),
-            "max_level": max_level,
-            "maxed": (max_level is not None and level >= max_level)
-    }
+        
