@@ -295,7 +295,6 @@ tapButton.addEventListener("pointerdown", async (event) => {
     }
 
   } finally {
-    // ЖЕСТКО ИСПРАВЛЕНО: Теперь кликер разблокируется всегда, даже если сервер выдал ошибку
     tapBusy = false;
   }
 }, { passive: false });
@@ -314,7 +313,7 @@ tapButton.addEventListener("pointercancel", releaseTap, { passive: false });
 tapButton.addEventListener("pointerleave", releaseTap, { passive: false });
 
 /* =========================
-   PANELS
+   PANELS NAVIGATION
 ========================= */
 const panel = $("panel");
 
@@ -337,7 +336,7 @@ function openPanel(type) {
 }
 
 /* =========================
-   UPGRADES
+   UPGRADES PANEL
 ========================= */
 async function upgradesPanel() {
   const data = await api(`/api/upgrades?user_id=${encodeURIComponent(uid)}`);
@@ -387,7 +386,7 @@ async function upgradesPanel() {
 }
 
 /* =========================
-   GEMS
+   GEMS PANEL
 ========================= */
 function gemsPanel() {
   const doubleCost = 25 * (3 ** state.double_level);
@@ -395,6 +394,8 @@ function gemsPanel() {
   const gemIncomeCost = 100 * (1.8 ** state.gem_income_level);
 
   $("panel-content").innerHTML = `
-    <h2>💎 G3MS</h2>
+    <h2>💎 G3MS Магазин</h2>
     <div class="blue-menu">
-        
+      <div class="card upgrade-card">
+        <h3>⚡ DOUBLE TAP (Шанс x2)</h3>
+    
