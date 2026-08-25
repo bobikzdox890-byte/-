@@ -182,7 +182,8 @@ def buy_upgrade():
 @app.post("/api/tap")
 def tap():
     data = request.json or {}
-    uid, uname = str(data.get("user_id", "local-demo")), data.get("username", "Player")
+    uid = str(data.get("user_id", "local-demo"))
+    uname = data.get("username", "Player")
     row, _, _ = regen_energy(get_player(uid, uname))
     curr = now()
     cd = max(0.05, BASE_TAP_COOLDOWN - 0.05 * row["tap_cd_level"])
@@ -203,4 +204,4 @@ def tap():
 
 if __name__ == "__main__":
     app.run(debug=True)
-               
+    
