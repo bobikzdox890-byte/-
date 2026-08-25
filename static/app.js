@@ -1,12 +1,12 @@
-// Автоматически берем адрес текущего сайта — никаких блокировок CORS больше не будет!
-const RENDER_URL = window.location.origin; 
-
 window.onerror = function(message, source, lineno) {
   document.body.insertAdjacentHTML(
     "afterbegin",
     `<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;padding:15px;font-size:14px;">JS ERROR:<br>${message}<br>Line: ${lineno}</div>`
   );
 };
+
+// Автоматически и безошибочно определяем адрес твоего сервера Render
+const RENDER_URL = window.location.origin; 
 
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
@@ -33,14 +33,22 @@ let cooldownEnd = 0;
 let tapBusy = false;
 let currentPanelType = null;
 
+// ==========================================
+// ИСПРАВЛЕННАЯ СЕТЕВАЯ ФУНКЦИЯ API (ФИКС CORS И POST)
+// ==========================================
 async function api(url, options = {}) {
   try {
-    // Запросы гарантированно полетят на твой родной сервер Render
-    const response = await fetch(RENDER_URL + url, {
+    const fetchOptions = {
       method: options.method || "GET",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: options.body
-    });
+      headers: { "Content-Type": "application/json; charset=utf-8" }
+    };
+    
+    // Если передали тело запроса (для POST-методов), честно крепим его к fetch
+    if (options.body) {
+      fetchOptions.body = options.body;
+    }
+
+    const response = await fetch(RENDER_URL + url, fetchOptions);
     const text = await response.text();
     let data;
     try { data = JSON.parse(text); } catch { return { ok: false, error: "api_error" }; }
@@ -88,7 +96,9 @@ function setReady() {
   cooldownTimer = null;
   cooldownEnd = 0;
   const button = $("tap-button");
-  if (button) button.className = "ready";
+  if (button) {
+    button.className = "ready";
+  }
   updateCooldownIndicator(0);
 }
 
@@ -99,7 +109,9 @@ function startCooldown(seconds) {
 
   cooldownEnd = Date.now() + value * 1000;
   const button = $("tap-button");
-  if (button) button.className = "cooldown";
+  if (button) {
+    button.className = "cooldown";
+  }
 
   function updateCooldown() {
     const remaining = Math.max(0, cooldownEnd - Date.now()) / 1000;
@@ -114,6 +126,7 @@ function findPanelElement() {
   return $("panel") || document.querySelector(".panel");
 }
 
+// ИНИЦИАЛИЗАЦИЯ ИГРЫ ПОСЛЕ ОТРИСОВКИ СТРАНИЦЫ
 document.addEventListener("DOMContentLoaded", async () => {
   const data = await api(`/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`);
   if (data && data.ok) {
@@ -127,7 +140,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (tapButton) {
     const handleTapStart = async (event) => {
       if (event.cancelable) event.preventDefault();
+      
+      // Нулевая задержка сжатия кнопки под пальцем
       tapButton.className = "pressed"; 
+      
       if (tapBusy) return;
       tapBusy = true;
 
@@ -181,12 +197,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const handleTapEnd = (event) => {
       if (event.cancelable) event.preventDefault();
+      // Кнопка мгновенно отстреливает назад
       tapButton.className = "ready"; 
     };
 
+    // Слушаем мобильные касания
     tapButton.addEventListener("touchstart", handleTapStart, { passive: false });
     tapButton.addEventListener("touchend", handleTapEnd, { passive: false });
     tapButton.addEventListener("touchcancel", handleTapEnd, { passive: false });
+    
+    // Дублируем для мыши на ПК
     tapButton.addEventListener("mousedown", handleTapStart);
     tapButton.addEventListener("mouseup", handleTapEnd);
     tapButton.addEventListener("mouseleave", handleTapEnd);
@@ -258,54 +278,3 @@ async function gemsPanel() {
       <div class="card upgrade-card">
         <h3>⚡ DOUBLE TAP (Шанс x2)</h3>
         <div class="upgrade-price">${upDouble.cost.toFixed(2)} 💎</div>
-        <div class="upgrade-level">Уровень: <b>${upDouble.level}</b> (Шанс: ${(state.double_chance * 100).toFixed(0)}%)</div>
-        <button style="background:var(--purple)" onclick="buyGemUpgrade('double')">Прокачать</button>
-      </div>
-      <div class="card upgrade-card">
-        <h3>🔥 MULTIPLIER (Множитель)</h3>
-        <div class="upgrade-price">${upMult.cost.toFixed(2)} 💎</div>
-        <div class="upgrade-level">Уровень: <b>${upMult.level}</b> (Множитель: x${state.income_multiplier})</div>
-        <button style="background:var(--purple)" onclick="buyGemUpgrade('multiplier')">Прокачать</button>
-      </div>
-      <div class="card upgrade-card">
-        <h3>💎 GEM INCOME (Дроп гемов)</h3>
-        <div class="upgrade-price">${upGemInc.cost.toFixed(2)} 💎</div>
-        <div class="upgrade-level">Уровень: <b>${upGemInc.level}</b> (Шанс: ${(state.gem_chance * 100).toFixed(0)}%)</div>
-        <button style="background:var(--purple)" onclick="buyGemUpgrade('gem_income')">Прокачать</button>
-      </div>
-    </div>`;
-}
-
-function ratingPanel() {
-  const content = $("panel-content") || document.querySelector("#panel-content");
-  if (content) content.innerHTML = `<h2>🏆 Рейтинг</h2><div class="row"><div>1. Топ Игрок</div><b>999999.00 $</b></div><div class="row"><div>Ваше место:</div><b>${Number(state.dollars).toFixed(2)} $</b></div>`;
-}
-
-function profilePanel() {
-  const content = $("panel-content") || document.querySelector("#panel-content");
-  if (content) content.innerHTML = `<h2>👤 Профиль</h2><div class="card"><p>ID: <b>${uid}</b></p><p>Имя: <b>${username}</b></p><p>Баланс: <b>${Number(state.dollars).toFixed(2)} 8OLLAR</b></p><p>Кристаллы: <b>${Number(state.gems).toFixed(0)} 💎</b></p></div>`;
-}
-
-async function sendUpgradeRequest(kind, isMax = false) {
-  const data = await api("/api/upgrades/buy", {
-    method: "POST",
-    body: JSON.stringify({ user_id: uid, kind: kind, max: isMax })
-  });
-
-  if (!data.ok) {
-    if (data.error === "no_money") toast("❌ Недостаточно средств");
-    else if (data.error === "max_level") toast("🏆 Максимум");
-    else toast("❌ Ошибка покупки");
-    return;
-  }
-
-  render(data.player);
-  toast("✅ Успешно прокачано!");
-  
-  if (currentPanelType === "upgrades") upgradesPanel();
-  if (currentPanelType === "gems") gemsPanel();
-}
-
-window.buy = function(kind) { sendUpgradeRequest(kind, false); };
-window.buyMax = function(kind) { sendUpgradeRequest(kind, true); };
-window.buyGemUpgrade = function(kind) { sendUpgradeRequest(kind, false); };
