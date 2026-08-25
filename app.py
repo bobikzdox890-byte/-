@@ -63,12 +63,12 @@ def get_player(uid, uname="Player"):
 
 def regen_energy(row):
     max_eng = BASE_ENERGY_MAX * (1.5 ** row["energy_level"])
-    cd = max(0.10, BASE_REGEN_COOLDOWN - 0.10 * row["regen_level"])
+    cd = 1.0
     elapsed = max(0, now() - row["last_energy_at"])
-    gained = int(elapsed / cd)
-    if gained <= 0: return row, max_eng, cd
-    new_eng = min(max_eng, row["energy"] + gained)
-    new_last = now() - (elapsed - gained * cd)
+    ticks = int(elapsed / cd)
+    if ticks <= 0: return row, max_eng, cd
+    new_eng = min(max_eng, row["energy"] + (ticks * (1 + row["regen_level"])))
+    new_last = now() - (elapsed - ticks * cd)
     conn = db()
     try:
         conn.execute("UPDATE players SET energy=%s, last_energy_at=%s WHERE user_id=%s", (new_eng, new_last, row["user_id"]))
