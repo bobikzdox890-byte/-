@@ -138,6 +138,26 @@ def state():
     uname = request.args.get("username", "Player")
     return jsonify({"ok": True, "player": serialize(get_player(uid, uname))})
 
+# НОВЫЙ ДИНАМИЧЕСКИЙ РОУТ ДЛЯ ЛИДЕРБОРДА
+@app.get("/api/leaderboard")
+def get_leaderboard():
+    conn = db()
+    try:
+        rows = conn.execute("SELECT user_id, username, dollars FROM players ORDER BY dollars DESC").fetchall()
+        leaderboard = []
+        for index, row in enumerate(rows):
+            leaderboard.append({
+                "rank": index + 1,
+                "user_id": row["user_id"],
+                "username": row["username"] or "Player",
+                "dollars": round(row["dollars"], 2)
+            })
+        return jsonify({"ok": True, "leaderboard": leaderboard})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+    finally:
+        conn.close()
+
 @app.get("/api/upgrades")
 def upgrades():
     row = get_player(str(request.args.get("user_id", "local-demo")))
@@ -204,4 +224,3 @@ def tap():
 
 if __name__ == "__main__":
     app.run(debug=True)
-    
