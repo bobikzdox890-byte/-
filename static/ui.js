@@ -1,6 +1,5 @@
-// МОДУЛЬ UI ДЛЯ 8OLLAR TAP — ВЕРСИЯ С ТОП-3 И РАСШИРЕННЫМ ПРОФИЛЕМ
+// МОДУЛЬ UI ДЛЯ 8OLLAR TAP — ПОЛНОСТЬЮ ЖИВОЙ ТОП И ПРОФИЛЬ
 document.addEventListener("DOMContentLoaded", async () => {
-  // Загружаем стартовое состояние игрока при входе
   const data = await api(`/api/state?user_id=${encodeURIComponent(uid)}&username=${encodeURIComponent(username)}`);
   if (data && data.ok) { 
     render(data.player); 
@@ -9,12 +8,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     toast("❌ API не отвечает"); 
   }
 
-  // Логика пулеметного тапа кнопки (без задержек)
   const tapButton = $("tap-button");
   if (tapButton) {
     const start = async (e) => {
       if (e.cancelable) e.preventDefault();
-      tapButton.className = "pressed"; // Мгновенное сжатие кнопки
+      tapButton.className = "pressed";
       if (tapBusy) return;
       tapBusy = true;
 
@@ -32,7 +30,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         render(res.player); 
         startCooldown(res.tap_cd);
 
-        // Красивые вылетающие цифры дохода
         const num = document.createElement("div"); 
         num.className = "reward-float"; 
         num.textContent = `+${Number(res.reward).toFixed(2)}`;
@@ -41,7 +38,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         ($("float-layer") || document.body).appendChild(num);
         setTimeout(() => num.remove(), 850);
 
-        // Бонусные вылеты (Double, X5, Гемы)
         let bonusText = res.gem_drop ? "💎 +1 G3MS" : res.x5 ? "🔥 X5!" : res.doubled ? "⚡ DOUBLE!" : null;
         document.querySelectorAll(".bonus-float").forEach(el => el.remove());
         if (bonusText) {
@@ -64,35 +60,54 @@ document.addEventListener("DOMContentLoaded", async () => {
     tapButton.addEventListener("mouseup", end);
   }
 
-  // Оживляем кнопки закрытия и открытия панелей
   const p = findPanelElement();
   if ($("close-panel") && p) $("close-panel").onclick = () => { p.classList.remove("open"); currentPanelType = null; };
   document.querySelectorAll(".bottom button").forEach(b => b.onclick = () => { openPanel(b.dataset.panel); });
 });
 
-// ГЛОБАЛЬНАЯ НАВИГАЦИЯ ПО ПАНЕЛЯМ
-function openPanel(t) {
+async function openPanel(t) {
   const p = findPanelElement(); if (!p) return; p.classList.add("open"); currentPanelType = t;
   if (t === "upgrades") upgradesPanel(); 
   if (t === "gems") gemsPanel();
   
-  // ЛИДЕРБОРД С РАНЖИРОВАНИЕМ КАРТОЧЕК ДЛЯ ТОП-3
   if (t === "rating") {
-    $("panel-content").innerHTML = `
-      <h2>🏆 Рейтинг Игроков</h2>
-      <div class="leaderboard-container">
-        <div class="row rank-gold"><span>🥇 1. Топ Игрок</span><b>999999.00 $</b></div>
-        <div class="row rank-silver"><span>🥈 2. Тестировщик</span><b>50000.00 $</b></div>
-        <div class="row rank-bronze"><span>🥉 3. Олд Игрок</span><b>25000.00 $</b></div>
-        <div class="row rank-normal"><span>4. КиберТапер</span><b>12000.00 $</b></div>
-        <div class="row current-user-row">
-          <span>Ваше место:</span><b>${Number(state.dollars).toFixed(2)} $</b>
+    $("panel-content").innerHTML = "<h2>🏆 Рейтинг Игроков</h2><div class='leaderboard-container'><p style='text-align:center;color:#888;'>Загрузка топа...</p></div>";
+    
+    const res = await api("/api/leaderboard");
+    if (!res || !res.ok) {
+      $("panel-content").innerHTML = "<h2>🏆 Рейтинг Игроков</h2><p style='text-align:center;color:red;'>❌ Ошибка загрузки топа</p>";
+      return;
+    }
+
+    let html = "<h2>🏆 Рейтинг Игроков</h2><div class='leaderboard-container'>";
+    let myRank = "N/A";
+    
+    res.leaderboard.forEach(player => {
+      let rankClass = "rank-normal";
+      let prefix = `${player.rank}. `;
+      
+      if (player.rank === 1) { rankClass = "rank-gold"; prefix = "🥇 1. "; }
+      else if (player.rank === 2) { rankClass = "rank-silver"; prefix = "🥈 2. "; }
+      else if (player.rank === 3) { rankClass = "rank-bronze"; prefix = "🥉 3. "; }
+      
+      let isMe = String(player.user_id) === String(uid);
+      if (isMe) {
+        rankClass += " current-user-row";
+        myRank = player.rank;
+      }
+      
+      html += `<div class="row ${rankClass}"><span>${prefix}${player.username}</span><b>${player.dollars.toFixed(2)} $</b></div>`;
+    });
+    
+    html += `
+        <div class="row current-user-row" style="margin-top:15px;">
+          <span>Ваше место (${myRank}):</span><b>${Number(state.dollars).toFixed(2)} $</b>
         </div>
       </div>
     `;
+    $("panel-content").innerHTML = html;
   }
   
-  // ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ С ДОБАВЛЕНИЕМ БАЛАНСОВ И РЕФЕРАЛОВ
   if (t === "profile") {
     $("panel-content").innerHTML = `
       <h2>👤 Профиль Пользователя</h2>
@@ -117,7 +132,6 @@ function openPanel(t) {
   }
 }
 
-// КАРТОЧКИ ОБЫЧНЫХ АПГРЕЙДОВ + КНОПКА MAX
 async function upgradesPanel() {
   const d = await api(`/api/upgrades?user_id=${encodeURIComponent(uid)}`);
   const content = $("panel-content");
@@ -174,14 +188,13 @@ async function gemsPanel() {
       </div>
       <div class="card upgrade-card">
         <h3>💎 GEM INCOME (Шанс дропа кристаллов)</h3>
-        <div class="upgrade-price">${upGemInc.cost.toFixed(2)} 💎</div>
+        <div class="upgrade-price">${upGemInc.cost.toFixed(2) + " 💎"}</div>
         <div class="upgrade-level">Уровень: <b>${upGemInc.level}</b> (Шанс выпадения: ${(state.gem_chance * 100).toFixed(0)}%)</div>
         <button style="background:var(--purple); width:100%; border:none; padding:12px; border-radius:12px; color:#fff; font-weight:bold; cursor:pointer;" onclick="buyGemUpgrade('gem_income')">Прокачать</button>
       </div>
     </div>`;
 }
 
-// Отправка запросов прокачки на бэкенд
 async function sendUpgradeRequest(k, m = false) {
   const d = await api("/api/upgrades/buy", { method: "POST", body: JSON.stringify({ user_id: uid, kind: k, max: m }) });
   if (!d.ok) { toast("❌ Ошибка покупки апгрейда"); return; }
