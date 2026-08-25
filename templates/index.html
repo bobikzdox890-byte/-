@@ -1,63 +1,97 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>8OLLAR Tap</title>
-  <link rel="stylesheet" href="/static/style.css?v=4">
-  <script src="https://telegram.org"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>8OLLAR Tap</title>
+    <!-- Подключаем стили -->
+    <link rel="stylesheet" href="static/style.css?v=999">
+    <!-- Telegram WebApp API -->
+    <script src="https://telegram.org"></script>
 </head>
 <body>
-  <div class="neon"></div>
-  
-  <div class="container">
-    <div class="header">
-      <div class="score-box">
-        <span class="currency-label">8OLLAR</span>
-        <h1 id="dollars">0.00</h1>
-      </div>
-      <div class="energy-box">
-        ⚡ <span id="energy">100</span> / <span id="max-energy">100</span>
-      </div>
+
+    <!-- ОСНОВНОЙ ЭКРАН ИГРЫ -->
+    <div class="game-container">
+        <!-- Блок главного баланса -->
+        <div class="main-balance-container">
+            <div class="balance-label">БАЛАНС</div>
+            <div id="main-balance" class="balance-amount">0.00 $</div>
+        </div>
+
+        <!-- Главная кнопка-тапалка -->
+        <div class="tap-button-zone">
+            <button id="tap-btn" class="click-button">
+                <span class="coin-symbol">8</span>
+            </button>
+        </div>
+
+        <!-- Индикатор энергии / Кулдаун -->
+        <div class="energy-container">
+            <div class="energy-text">Энергия: <span id="energy-current">1000</span>/<span id="energy-max">1000</span></div>
+            <div class="energy-bar-bg">
+                <div id="energy-fill" class="energy-bar-fill"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Область индикации кулдауна -->
-    <div id="cooldown-indicator" class="cooldown-ready">
-      STATUS: <span id="cooldown-time">READY</span>
+    <!-- ВСПЛЫВАЮЩИЙ СЛОЙ ДЛЯ ВЫЛЕТАЮЩИХ НАГРАД (FLOAT-LAYER) -->
+    <div id="float-layer" class="float-layer"></div>
+
+    <!-- НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ (Внутри неоновой рамки) -->
+    <nav class="bottom-navigation neon">
+        <button class="nav-btn" onclick="ui.openPanel('shop')">💎 G3MS</button>
+        <button class="nav-btn active" onclick="ui.closeAllPanels()">🎮 Игра</button>
+        <button class="nav-btn" onclick="ui.openPanel('top')">🏆 Топ</button>
+    </nav>
+
+    <!-- ВЫЕЗЖАЮЩАЯ ШТОРКА: МАГАЗИН G3MS -->
+    <div id="shop-panel" class="panel">
+        <div class="shop-header">
+            <h2 class="shop-title">GEMS Premium shop</h2>
+            <div class="shop-balance">
+                Баланс: <span id="premium-gems-balance">0</span> 💎
+            </div>
+        </div>
+        <div class="panel-content shop-content">
+            <!-- Сюда твоя логика отрендерит товары -->
+            <div class="empty-notice">Премиум товары загружаются...</div>
+        </div>
+        <button class="close-panel-btn" onclick="ui.closeAllPanels()">Закрыть</button>
     </div>
 
-    <!-- Основная кликабельная зона -->
-    <div id="tap-area">
-      <button id="tap-button" class="ready">
-        <div class="tap-inner">TAP</div>
-      </button>
+    <!-- ВЫЕЗЖАЮЩАЯ ШТОРКА: ТОП ИГРОКОВ -->
+    <div id="top-panel" class="panel">
+        <div class="panel-header">
+            <h2 class="shop-title">Рейтинг игроков</h2>
+        </div>
+        <div class="panel-content">
+            <div class="leaderboard-list">
+                <!-- 1 место -->
+                <div class="leaderboard-row">
+                    <span class="player-name">1. Топ игрок</span>
+                    <span class="player-score">999999.00 $</span>
+                </div>
+                
+                <!-- 2 место -->
+                <div class="leaderboard-row">
+                    <span class="player-name">2. Тестировщик</span>
+                    <span class="player-score">50000.00 $</span>
+                </div>
+                
+                <!-- Ваше место (Живой виджет, обновляется из ui.js) -->
+                <div class="leaderboard-row current-user">
+                    <span class="player-name">Ваше место</span>
+                    <span class="player-score" id="live-user-balance">0.00 $</span>
+                </div>
+            </div>
+        </div>
+        <button class="close-panel-btn" onclick="ui.closeAllPanels()">Закрыть</button>
     </div>
 
-    <!-- Слои для анимаций вылетающих цифр -->
-    <div id="float-layer"></div>
-    <div id="bonus-layer"></div>
-
-    <!-- Нижнее меню навигации -->
-    <div class="bottom">
-      <button data-panel="upgrades">⚙️ Апгрейды</button>
-      <button data-panel="gems">💎 G3MS</button>
-      <button data-panel="rating">🏆 Топ</button>
-      <button data-panel="profile">👤 Профиль</button>
-    </div>
-  </div>
-
-  <!-- Всплывающее окно (Шторка) -->
-  <div id="panel" class="panel">
-    <button id="close-panel">✕</button>
-    <div id="panel-content"></div>
-  </div>
-
-  <div id="toast"></div>
-
-  <!-- Подключаем скрипт в самом конце сборки DOM -->
-    <!-- Подключаем файлы по очереди, разбивая нагрузку -->
-  <script src="/static/core.js?v=1"></script>
-  <script src="/static/game.js?v=1"></script>
-  <script src="/static/ui.js?v=1"></script>
+    <!-- ПОДКЛЮЧЕНИЕ СТРУКТУРЫ СКРИПТОВ С КЭШ-БАСКЕТОМ -->
+    <script src="static/core.js?v=999"></script>
+    <script src="static/game.js?v=999"></script>
+    <script src="static/ui.js?v=999"></script>
 </body>
 </html>
